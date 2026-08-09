@@ -5,7 +5,7 @@
 #include <cstdint>
 
 enum class MidiMsgType : uint8_t {
-    NoteOn, NoteOff, PitchBend, ControlChange, ProgramChange
+    NoteOn, NoteOff, PitchBend, CCExpression, CCVolume, CCPan, ProgramChange
 };
 
 struct MidiMsg {
