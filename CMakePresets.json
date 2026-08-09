@@ -1,0 +1,18 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "Default",
+            "displayName": "Clang 21.1.8 aarch64-redhat-linux-gnu",
+            "description": "Using compilers: C = /usr/sbin/clang, CXX = /usr/sbin/clang++",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/sbin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/sbin/clang++",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ]
+}
