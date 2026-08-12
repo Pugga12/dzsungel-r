@@ -13,6 +13,18 @@
                 "CMAKE_CXX_COMPILER": "/usr/sbin/clang++",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
+        },
+        {
+            "name": "GCC 15.3.1 aarch64-redhat-linux",
+            "displayName": "GCC 15.3.1 aarch64-redhat-linux",
+            "description": "Using compilers: C = /usr/sbin/aarch64-redhat-linux-gcc, CXX = /usr/sbin/aarch64-redhat-linux-g++",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/sbin/aarch64-redhat-linux-gcc",
+                "CMAKE_CXX_COMPILER": "/usr/sbin/aarch64-redhat-linux-g++",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
         }
     ]
 }
