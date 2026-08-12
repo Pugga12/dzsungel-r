@@ -1,0 +1,39 @@
+name: C++ CI & Google Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Cache FetchContent dependencies (like Google Test) to speed up CI runs
+      - name: Cache FetchContent
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/_deps
+          key: ${{ runner.os }}-fetchcontent-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-fetchcontent-
+
+      - name: Configure CMake
+        run: >
+          cmake -B build 
+          -DCMAKE_BUILD_TYPE=Debug 
+          -DENABLE_TESTING=ON
+
+      - name: Build Project & Tests
+        run: cmake --build build --config Debug -j $(nproc)
+
+      - name: Run Tests (CTest)
+        run: |
+          cd build
+          ctest --output-on-failure -C Debug

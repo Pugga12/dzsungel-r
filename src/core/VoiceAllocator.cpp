@@ -17,6 +17,7 @@
 
 #include "core/VoiceAllocator.hpp"
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -95,6 +96,8 @@ namespace dzsungel::core {
         if (victim == -1) {
             std::tie(victim, status) = findVictim(false, channel);
         }
+
+        assert(victim >= 0 && victim < kMaxVoices);
 
         const auto finalId = static_cast<uint8_t>(victim);
         unbind(finalId);
