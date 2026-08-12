@@ -28,7 +28,7 @@ jobs:
         run: >
           cmake -B build 
           -DCMAKE_BUILD_TYPE=Debug 
-          -DENABLE_TESTING=ON
+          -DDZSUNGEL_BUILD_TESTS=ON
 
       - name: Build Project & Tests
         run: cmake --build build --config Debug -j $(nproc)

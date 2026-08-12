@@ -22,4 +22,8 @@ target_include_directories(dzsungel-core PUBLIC ${PROJECT_SOURCE_DIR}/include/dz
 add_executable(dzsungel-r src/apps/cli-render.cpp)
 target_link_libraries(dzsungel-r PRIVATE dzsungel-core)
 
-add_subdirectory(tests EXCLUDE_FROM_ALL)
+option(DZSUNGEL_BUILD_TESTS "Build the GoogleTest-based test suite" ON)
+if (DZSUNGEL_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests EXCLUDE_FROM_ALL)
+endif ()
