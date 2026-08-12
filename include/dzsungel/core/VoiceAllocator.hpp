@@ -40,7 +40,7 @@ namespace dzsungel::core {
         static constexpr int8_t kDuplicateNotes = -2;
 
         VoiceAllocResult allocate(uint8_t channel, uint8_t pitch, uint32_t sampleTime);
-        uint8_t release(uint8_t channel, uint8_t pitch);
+        int8_t release(uint8_t channel, uint8_t pitch);
         void notifyIdle(uint8_t voiceId);
         VoiceAllocator() {
             noteToVoice_.fill(kNotBound);
@@ -57,7 +57,7 @@ namespace dzsungel::core {
         std::array<int8_t, kNumChannels * kNumNotes> noteToVoice_{};
         std::array<std::bitset<kMaxVoices>, kNumChannels> channelVoices_;
 
-        bool bind(uint8_t id, uint8_t channel, uint8_t pitch, uint32_t triggeredAt);
+        void bind(uint8_t id, uint8_t channel, uint8_t pitch, uint32_t triggeredAt);
         void unbind(uint8_t id);
         std::pair<int, VoiceAllocStatus> findVictim(bool channelScoped, uint8_t channel) const;
     };

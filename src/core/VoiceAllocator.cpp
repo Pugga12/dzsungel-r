@@ -20,9 +20,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 
 namespace dzsungel::core {
-    static size_t calculateFlatIdx(uint8_t channel, uint8_t pitch) {
+    inline size_t calculateFlatIdx(uint8_t channel, uint8_t pitch) {
         return (channel * 128) + pitch;
     }
 
@@ -49,6 +50,17 @@ namespace dzsungel::core {
         if (bestActive != -1) return  {bestActive, VoiceAllocStatus::STOLEN_FROM_ACTIVE};
 
         return {-1, VoiceAllocStatus::FRESH};
+    }
+
+    void VoiceAllocator::bind(uint8_t id, uint8_t channel, uint8_t pitch, uint32_t triggeredAt) {
+        auto& v = voices_[id];
+        v.status = VoiceSlot::Status::Active;
+        v.channel = channel;
+        v.pitch = pitch;
+        v.triggeredAtSample = triggeredAt;
+
+        channelVoices_[channel].set(channel);
+        noteToVoice_[calculateFlatIdx(channel, pitch)] = id;
     }
 
     void VoiceAllocator::unbind(uint8_t id) {
@@ -89,5 +101,31 @@ namespace dzsungel::core {
         bind(finalId, channel, pitch, sampleTime);
 
         return {status, finalId};
+    }
+
+    int8_t VoiceAllocator::release(uint8_t channel, uint8_t pitch) {
+        const size_t flatIdx = calculateFlatIdx(channel, pitch);
+        int8_t boundId = noteToVoice_[flatIdx];
+
+        if (boundId == kNotBound) {
+            return kNotBound;
+        }
+
+        noteToVoice_[flatIdx] = kNotBound;
+        voices_[boundId].status = VoiceSlot::Status::Releasing;
+
+        return boundId;
+    }
+
+    void VoiceAllocator::notifyIdle(uint8_t voiceId) {
+        auto& v = voices_[voiceId];
+
+        const size_t flatIdx = calculateFlatIdx(v.channel, v.pitch);
+        if (noteToVoice_[flatIdx] == voiceId) {
+            noteToVoice_[flatIdx] = kNotBound;
+        }
+
+        channelVoices_[v.channel].reset(voiceId);
+        v.status = VoiceSlot::Status::Free;
     }
 } // namespace dzsungel::core
