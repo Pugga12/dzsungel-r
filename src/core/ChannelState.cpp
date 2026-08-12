@@ -18,14 +18,14 @@
 #include "core/ChannelState.hpp"
 #include <cstdint>
 
-int16_t pitchBendToSInt(const MidiMsg& msg) {
+inline int16_t pitchBendToSInt(const MidiMsg& msg) {
     const uint16_t uFull = static_cast<uint16_t>(msg.data2 << 7) | static_cast<uint16_t>(msg.data1);
     return uFull - 8192;
 }
 
 namespace dzsungel::core {
     bool ChannelStateStore::apply(const MidiMsg &msg) {
-        if (msg.channel > 16) {
+        if (msg.channel > 15) {
             return false;
         }
         ChannelState& c = channels_[msg.channel];
@@ -35,18 +35,23 @@ namespace dzsungel::core {
         switch (msg.type) {
             case MidiMsgType::PitchBend: {
                 c.pitchBendRaw = pitchBendToSInt(msg);
+                break;
             }
             case MidiMsgType::CCExpression: {
                 c.expression = msg.data1;
+                break;
             }
             case MidiMsgType::CCVolume: {
                 c.volume = msg.data1;
+                break;
             }
             case MidiMsgType::CCPan: {
                 c.pan = msg.data1;
+                break;
             }
             case MidiMsgType::ProgramChange: {
                 c.packedProgId = msg.data1;
+                break;
             }
             case MidiMsgType::NoteOff: case MidiMsgType::NoteOn: break;
         }

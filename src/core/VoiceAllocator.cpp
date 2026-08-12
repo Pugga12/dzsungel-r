@@ -59,7 +59,7 @@ namespace dzsungel::core {
         v.pitch = pitch;
         v.triggeredAtSample = triggeredAt;
 
-        channelVoices_[channel].set(channel);
+        channelVoices_[channel].set(id);
         noteToVoice_[calculateFlatIdx(channel, pitch)] = id;
     }
 
