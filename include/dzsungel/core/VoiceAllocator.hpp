@@ -18,12 +18,9 @@
 #pragma once
 #include <array>
 #include <bitset>
-#include <cstddef>
 #include <cstdint>
+#include <Constants.hpp>
 
-static constexpr size_t kNumChannels = 16;
-static constexpr size_t kNumNotes = 128;
-static constexpr size_t kMaxVoices = 16;
 namespace dzsungel::core {
     enum class VoiceAllocStatus : uint8_t {
         FRESH, STOLEN_FROM_RELEASING, STOLEN_FROM_ACTIVE, DUPLICATE
@@ -38,6 +35,7 @@ namespace dzsungel::core {
     public:
         static constexpr int8_t kNotBound = -1;
         static constexpr int8_t kDuplicateNotes = -2;
+        static constexpr size_t kNumNotes = 128;
 
         VoiceAllocResult allocate(uint8_t channel, uint8_t pitch, uint32_t sampleTime);
         int8_t release(uint8_t channel, uint8_t pitch);
@@ -59,6 +57,6 @@ namespace dzsungel::core {
 
         void bind(uint8_t id, uint8_t channel, uint8_t pitch, uint32_t triggeredAt);
         void unbind(uint8_t id);
-        std::pair<int, VoiceAllocStatus> findVictim(bool channelScoped, uint8_t channel) const;
+        [[nodiscard]] std::pair<int, VoiceAllocStatus> findVictim(bool channelScoped, uint8_t channel) const;
     };
 }

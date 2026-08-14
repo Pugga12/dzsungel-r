@@ -22,9 +22,10 @@
 namespace dzsungel::resources {
     class Wavetable {
     public:
-        explicit Wavetable(std::vector<float> samples) : samples_(std::move(samples)) {};
+        explicit Wavetable(std::vector<float> samples) : samples_(std::move(samples)) {}
 
-        std::span<const float> data() const noexcept {return samples_; };
+        [[nodiscard]] std::span<const float> data() const noexcept {return samples_; }
+        [[nodiscard]] size_t size() const {return samples_.size(); }
 
     private:
         std::vector<float> samples_;

@@ -15,27 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
 
-#pragma once
-#include <array>
-#include <cstdint>
-#include "Types.hpp"
+#include "core/Oscillators.hpp"
+#include "resources/WavetableStore.hpp"
 
-namespace dzsungel::core {
-    struct ChannelState {
-        uint32_t stateVersion = 0;
-        uint32_t packedProgId = 0;
+int main() {
+    dzsungel::resources::WavetableStore w;
 
-        int16_t pitchBendRaw = 0;
-        uint8_t expression = 127;
-        uint8_t volume = 127;
-        uint8_t pan = 64;
-    };
-
-    class ChannelStateStore {
-    public:
-        [[nodiscard]] const ChannelState& get(const uint8_t id) const { return channels_[id];}
-        bool apply(const MidiMsg& msg);
-    private:
-        std::array<ChannelState, 16> channels_;
-    };
+    auto t = w.find("default-sin");
 }

@@ -17,7 +17,6 @@
 
 #pragma once
 #include "Wavetable.hpp"
-#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>

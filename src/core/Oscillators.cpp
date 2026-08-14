@@ -15,10 +15,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
 
-#include "resources/WavetableStore.hpp"
+#include "core/Oscillators.hpp"
 
-int main() {
-    dzsungel::resources::WavetableStore w;
-
-    auto t = w.find("default-sin");
-}
+namespace dzsungel::core::oscillators {
+    float WavetableOsc::get() const {
+        return at(phase_);
+    }
+    float WavetableOsc::at(float phase) const {
+        return table_->data()[static_cast<size_t>(phase)];
+    }
+    void WavetableOsc::advance() {
+        phase_ += phaseIncrement_;
+        while (phase_ >= tableSize_) phase_ -= tableSize_;
+    }
+    void WavetableOsc::frequencySet(float frequency, float sampleRate) {
+        phaseIncrement_ = (static_cast<float>(tableSize_) * frequency) / sampleRate;
+    }
+} // namespace dzsungel::core::oscillators

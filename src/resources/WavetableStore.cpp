@@ -45,7 +45,7 @@ namespace dzsungel::resources {
     }
 
     std::optional<const Wavetable *> WavetableStore::find(std::string_view id) const {
-        auto it = tables_.find(static_cast<std::string>(id));
+        const auto it = tables_.find(static_cast<std::string>(id));
 
         if (it == tables_.end()) {
             return std::nullopt;
