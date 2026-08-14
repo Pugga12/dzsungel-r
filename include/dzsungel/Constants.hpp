@@ -21,3 +21,4 @@
 constexpr float kDefaultSampleRate = 44100.0f;
 constexpr size_t kNumChannels = 16;
 constexpr size_t kMaxVoices = 16;
+constexpr float EPSILON = 1e-4;

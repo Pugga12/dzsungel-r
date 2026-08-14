@@ -12,6 +12,7 @@ set(SOURCES
         src/core/ChannelState.cpp
         src/core/VoiceAllocator.cpp
         src/core/Oscillators.cpp
+        src/core/ADSR.cpp
 )
 
 # Library target containing all engine logic, with no main() of its own.
