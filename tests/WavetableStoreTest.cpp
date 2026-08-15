@@ -37,8 +37,8 @@ TEST(WavetableStoreTest, DefaultConstructorSeedsDefaultSineAndTriangle) {
 
     ASSERT_TRUE(sine.has_value());
     ASSERT_TRUE(tri.has_value());
-    EXPECT_EQ((*sine)->data().size(), STD_LENGTH);
-    EXPECT_EQ((*tri)->data().size(), STD_LENGTH);
+    EXPECT_EQ((*sine)->data().size(), kDefaultLength);
+    EXPECT_EQ((*tri)->data().size(), kDefaultLength);
 }
 
 TEST(WavetableStoreTest, FindReturnsNulloptForMissingId) {
