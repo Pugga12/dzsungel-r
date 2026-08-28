@@ -14,6 +14,7 @@ set(SOURCES
         src/core/Oscillators.cpp
         src/core/ADSR.cpp
         src/core/Algorithms.cpp
+        src/core/Voice.cpp
 )
 
 # Library target containing all engine logic, with no main() of its own.

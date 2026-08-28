@@ -17,6 +17,8 @@
 
 #include "core/Oscillators.hpp"
 
+#include <cmath>
+
 namespace dzsungel::core::oscillators {
     float WavetableOsc::get() const {
         return at(phase_);
@@ -30,5 +32,10 @@ namespace dzsungel::core::oscillators {
     }
     void WavetableOsc::frequencySet(float frequency, float sampleRate) {
         phaseIncrement_ = (static_cast<float>(tableSize_) * frequency) / sampleRate;
+    }
+    float WavetableOsc::get(float phaseDiff) const {
+        float perturbedPhase = phase_ + phaseDiff;
+        perturbedPhase -= static_cast<float>(tableSize_) * std::floor(perturbedPhase);
+        return at(perturbedPhase);
     }
 } // namespace dzsungel::core::oscillators

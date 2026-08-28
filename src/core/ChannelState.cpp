@@ -29,32 +29,37 @@ namespace dzsungel::core {
             return false;
         }
         ChannelState& c = channels_[msg.channel];
-        c.stateVersion++;
+        bool valid = false;
 
-        // ReSharper disable once CppIncompleteSwitchStatement
         switch (msg.type) {
             case MidiMsgType::PitchBend: {
                 c.pitchBendRaw = pitchBendToSInt(msg);
+                valid = true;
                 break;
             }
             case MidiMsgType::CCExpression: {
                 c.expression = msg.data1;
+                valid = true;
                 break;
             }
             case MidiMsgType::CCVolume: {
                 c.volume = msg.data1;
+                valid = true;
                 break;
             }
             case MidiMsgType::CCPan: {
                 c.pan = msg.data1;
+                valid = true;
                 break;
             }
             case MidiMsgType::ProgramChange: {
                 c.packedProgId = msg.data1;
+                valid = true;
                 break;
             }
-            case MidiMsgType::NoteOff: case MidiMsgType::NoteOn: break;
+            case MidiMsgType::NoteOff: case MidiMsgType::NoteOn: default: break;
         }
+        if (valid) c.stateVersion++;
 
         return true;
     }

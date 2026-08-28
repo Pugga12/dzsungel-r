@@ -23,6 +23,7 @@
 
 #include "ADSR.hpp"
 #include "Oscillators.hpp"
+#include "RampingValue.hpp"
 
 using dzsungel::core::oscillators::PhaseOsc;
 
@@ -41,10 +42,12 @@ namespace dzsungel::core::algorithms {
         PhaseOsc carrier_, modulator_;
         ADSR modEnv_;
         float cToMRatio_ = 0, modIndex_ = 0;
+        float baseFrequency_ = 0;
+        RampingValue<float> pitchBendRamp_;
 
     public:
         void noteOn(float baseFreqHz, uint8_t velocity);
-        void updatePitchBend(uint16_t pitchBendRaw);
+        void updatePitchBend(int16_t pitchBendRaw);
         void release();
         float renderNext();
     };
@@ -53,12 +56,14 @@ namespace dzsungel::core::algorithms {
     private:
         PhaseOsc carrier_;
         ADSR modEnv_;
-        float feedbackDepth_ = 0;
+        float modIndex_ = 0;
         float lastOutput = 0;
+        float baseFrequency_ = 0;
+        RampingValue<float> pitchBendRamp_;
 
     public:
         void noteOn(float baseFreqHz, uint8_t velocity);
-        void updatePitchBend(uint16_t pitchBendRaw);
+        void updatePitchBend(int16_t pitchBendRaw);
         void release();
         float renderNext();
     };

@@ -40,7 +40,7 @@ namespace dzsungel::core {
         state_ = ADSRState::IDLE;
     }
 
-    void ADSR::trigger(bool oneShot = false) {
+    void ADSR::trigger(bool oneShot) {
         state_ = ADSRState::ATTACK;
         oneShot_ = oneShot;
     }

@@ -48,18 +48,20 @@ TEST(ChannelStateStoreTest, ApplyRejectsChannelAtOrAboveSixteen) {
 
 TEST(ChannelStateStoreTest, StateVersionIncrementsOnEveryAcceptedApply) {
     ChannelStateStore store;
-    EXPECT_EQ(store.get(0).stateVersion, 0u);
 
-    store.apply(makeMsg(0, MidiMsgType::NoteOn));
-    EXPECT_EQ(store.get(0).stateVersion, 1u);
-
-    store.apply(makeMsg(0, MidiMsgType::NoteOff));
-    EXPECT_EQ(store.get(0).stateVersion, 2u);
+    store.apply(makeMsg(0, MidiMsgType::PitchBend));
+    store.apply(makeMsg(0, MidiMsgType::CCExpression));
+    store.apply(makeMsg(0, MidiMsgType::CCVolume));
+    store.apply(makeMsg(0, MidiMsgType::CCPan));
+    store.apply(makeMsg(0, MidiMsgType::ProgramChange));
+    EXPECT_EQ(store.get(0).stateVersion, 5);
 }
 
 TEST(ChannelStateStoreTest, StateVersionDoesNotIncrementOnRejectedApply) {
     ChannelStateStore store;
-    store.apply(makeMsg(200, MidiMsgType::NoteOn));
+    store.apply(makeMsg(0, MidiMsgType::NoteOn));
+    EXPECT_EQ(store.get(0).stateVersion, 0u);
+    store.apply(makeMsg(0, MidiMsgType::NoteOff));
     EXPECT_EQ(store.get(0).stateVersion, 0u);
 }
 

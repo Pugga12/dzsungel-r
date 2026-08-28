@@ -25,25 +25,35 @@ using dzsungel::resources::Wavetable;
 
 namespace dzsungel::core::oscillators {
     template <typename T>
-    concept PhaseAddressableOscillator = requires(T osc, const T constOsc, float phase, float phaseIncrement)
+    concept PhaseAddressableOscillator = requires(T osc, const T constOsc, float phase, float phaseIncrement, float frequency, float sampleRate, float phaseDiff)
     {
         {constOsc.get()} -> std::same_as<float>;
         {constOsc.at(phase)} -> std::same_as<float>;
         {osc.advance()} -> std::same_as<void>;
+        {osc.frequencySet(frequency, sampleRate)} -> std::same_as<void>;
+        {osc.get(phaseDiff)} -> std::same_as<float>;
+        {constOsc.getTableSize()} -> std::same_as<size_t>;
     };
 
     class WavetableOsc {
     private:
-        explicit WavetableOsc(const Wavetable* table) : table_(table), tableSize_(table->size()) {}
+        explicit WavetableOsc(const Wavetable* table)
+            : table_(table), tableSize_(table->size()),
+            invLen_(1.0f / static_cast<float>(table->size())) {}
 
         float phase_ = 0.0f;
         float phaseIncrement_ = 0.0f;
         const Wavetable* table_;
         const size_t tableSize_;
+        const float invLen_;
 
     public:
         [[nodiscard]] float get() const;
+        [[nodiscard]] float get(float phaseDiff) const;
         [[nodiscard]] float at(float phase) const;
+        [[nodiscard]] size_t getTableSize() const {
+            return tableSize_;
+        }
         void advance();
         void frequencySet(float frequency, float sampleRate = kDefaultSampleRate);
     };
