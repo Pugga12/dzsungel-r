@@ -45,6 +45,8 @@ namespace dzsungel::core::algorithms {
         float baseFrequency_ = 0;
         RampingValue<float> pitchBendRamp_;
 
+        void setOscillatorFrequencies(float freqHz);
+
     public:
         void noteOn(float baseFreqHz, uint8_t velocity);
         void updatePitchBend(int16_t pitchBendRaw);
@@ -60,6 +62,7 @@ namespace dzsungel::core::algorithms {
         float lastOutput = 0;
         float baseFrequency_ = 0;
         RampingValue<float> pitchBendRamp_;
+        void setOscillatorFrequencies(float freqHz);
 
     public:
         void noteOn(float baseFreqHz, uint8_t velocity);

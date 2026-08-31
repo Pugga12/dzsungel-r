@@ -40,7 +40,7 @@ public:
     RampingValue() = default;
 
     [[nodiscard]] bool isFinished() const {
-        return stepsRemaining_ == 0;
+        return stepsRemaining_ == 0 || base_ == target_;
     }
 
     void reset(T base, T target, uint32_t steps) {

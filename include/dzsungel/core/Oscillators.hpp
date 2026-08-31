@@ -44,8 +44,8 @@ namespace dzsungel::core::oscillators {
         float phase_ = 0.0f;
         float phaseIncrement_ = 0.0f;
         const Wavetable* table_;
-        const size_t tableSize_;
-        const float invLen_;
+        size_t tableSize_;
+        float invLen_;
 
     public:
         [[nodiscard]] float get() const;

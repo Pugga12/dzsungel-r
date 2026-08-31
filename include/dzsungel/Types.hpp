@@ -20,6 +20,7 @@
 //
 #pragma once
 #include <cstdint>
+#include <span>
 
 enum class MidiMsgType : uint8_t {
     NoteOn, NoteOff, PitchBend, CCExpression, CCVolume, CCPan, ProgramChange
@@ -41,4 +42,10 @@ struct VoiceEvent {
     MidiMsgType type;
     uint8_t data1;
     uint8_t data2;
+};
+
+struct SampleBuffer {
+    std::span<float> data;
+    uint8_t channels = 1;
+    uint8_t stride = 1;
 };
