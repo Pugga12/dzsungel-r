@@ -28,21 +28,27 @@ namespace dzsungel::core {
     private:
         AlgorithmImpl algorithm_;
         ADSR ampEnv_;
-        ChannelState& channelInfo_;
+        const ChannelState* channelInfo_ = nullptr;
         VoiceState state_ = VoiceState::IDLE;
 
         uint8_t currentPitch_ = 255;
         uint8_t currentVelocity_ = 0;
         uint32_t lastChannelVersion_ = 0;
+
+        uint8_t channelId_ = 0xff;
+        uint32_t packedProgram_ = 0;
     public:
         void provision(
             const AlgorithmImpl& newAlgorithm,
-            const ChannelState& channel,
+            const ChannelState* channel,
+            const uint8_t cId,
             const EnvelopeConfig &ampEnvConfig
         ) {
             algorithm_ = newAlgorithm;
             ampEnv_.configure(ampEnvConfig);
             channelInfo_ = channel;
+            channelId_ = cId;
+            packedProgram_ = channel->packedProgId;
         }
 
         void noteOn(uint8_t noteNumber, uint8_t velocity);
@@ -51,6 +57,12 @@ namespace dzsungel::core {
 
         [[nodiscard]] VoiceState getState() const {
             return state_;
+        }
+        [[nodiscard]] uint8_t getChannel() const {
+            return channelId_;
+        }
+        [[nodiscard]] uint32_t getProgramId() const {
+            return packedProgram_;
         }
     };
 }

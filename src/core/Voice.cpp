@@ -57,11 +57,11 @@ namespace dzsungel::core {
     }
 
     void Voice::processBlock(SampleBuffer &buf) {
-        if (channelInfo_.stateVersion != lastChannelVersion_) {
+        if (channelInfo_->stateVersion != lastChannelVersion_) {
             std::visit([&](auto& a) {
                 using T = std::decay_t<decltype(a)>;
                 if constexpr (!std::is_same_v<T, std::monostate>) {
-                    a.updatePitchBend(channelInfo_.pitchBendRaw);
+                    a.updatePitchBend(channelInfo_->pitchBendRaw);
                 }
             }, algorithm_);
         }
@@ -81,13 +81,13 @@ namespace dzsungel::core {
             }, algorithm_);
 
             const float ampVal = ampEnv_.advance();
-            const float vol = ampVal * (channelInfo_.expression / 127.0f) * (channelInfo_.volume / 127.0f);
+            const float vol = ampVal * (channelInfo_->expression / 127.0f) * (channelInfo_->volume / 127.0f);
             sample *= vol;
 
             if (buf.channels == 1) {
                 buf.data[i * buf.stride] += sample;
             } else {
-                const float panF = channelInfo_.pan / 127.0f;
+                const float panF = channelInfo_->pan / 127.0f;
                 buf.data[i * buf.stride + 0] += sample * (1 - panF);
                 buf.data[i * buf.stride + 1] += sample * panF;
             }

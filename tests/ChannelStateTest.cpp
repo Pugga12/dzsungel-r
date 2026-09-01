@@ -20,7 +20,7 @@ using dzsungel::core::ChannelStateStore;
 namespace {
 MidiMsg makeMsg(uint8_t channel, MidiMsgType type, uint8_t data1 = 0, uint8_t data2 = 0) {
     MidiMsg m{};
-    m.sampleOffset = 0;
+    m.absoluteSample = 0;
     m.channel = channel;
     m.type = type;
     m.data1 = data1;
