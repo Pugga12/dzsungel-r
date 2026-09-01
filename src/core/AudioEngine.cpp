@@ -52,20 +52,12 @@ namespace dzsungel::core {
             }
 
             if (msg.type == MidiMsgType::NoteOn) {
-                auto [status, id] = allocator_.allocate(msg.channel, msg.data1, msg.absoluteSample);
-                auto& voice = voices_[id];
-                uint8_t cId = voice.getChannel();
-                if (
-                    (cId == msg.channel && csiStore_.get(cId).packedProgId == voice.getProgramId())
-                    || status == VoiceAllocStatus::DUPLICATE
-                ) {
-                    voice.noteOn(msg.data1, msg.data2);
-                } else {
-                    voice.provision(
-
-                    )
-                }
+                handleNoteOn(msg);
             }
         }
+    }
+
+    void AudioEngine::handleNoteOn(const MidiMsg &msg) {
+        auto [status, id] = allocator_.allocate(msg.channel, msg.data1, msg.absoluteSample);
     }
 } // namespace dzsungel::core

@@ -24,9 +24,10 @@
 #include "ADSR.hpp"
 #include "Oscillators.hpp"
 #include "RampingValue.hpp"
+#include "resources/SynthProgram.hpp"
 
-using dzsungel::core::oscillators::PhaseOsc;
-
+using namespace dzsungel::core::oscillators;
+using namespace dzsungel::resources;
 namespace dzsungel::core::algorithms {
     template <typename T>
     concept Algorithm = requires(T algo, float baseFreqHz, uint8_t velocity, int16_t pitchBendRaw)
@@ -48,6 +49,14 @@ namespace dzsungel::core::algorithms {
         void setOscillatorFrequencies(float freqHz);
 
     public:
+        StandardPmAlgorithm(PhaseOsc carrier, PhaseOsc modulator, Program& p)
+            : carrier_(carrier), modulator_(modulator) {
+            const auto& params = std::get<StandardPMParams>(p.algorithmParams);
+            modEnv_.configure(params.modEnv);
+            cToMRatio_ = params.cToMRatio;
+            modIndex_ = params.modIndex;
+        }
+
         void noteOn(float baseFreqHz, uint8_t velocity);
         void updatePitchBend(int16_t pitchBendRaw);
         void release();
@@ -65,6 +74,13 @@ namespace dzsungel::core::algorithms {
         void setOscillatorFrequencies(float freqHz);
 
     public:
+        FeedbackAlgorithm(PhaseOsc carrier, Program& p)
+            : carrier_(carrier) {
+            const auto& params = std::get<FeedbackParams>(p.algorithmParams);
+            modIndex_ = params.modIndex;
+            modEnv_.configure(params.modEnv);
+        }
+
         void noteOn(float baseFreqHz, uint8_t velocity);
         void updatePitchBend(int16_t pitchBendRaw);
         void release();

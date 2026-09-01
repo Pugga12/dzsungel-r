@@ -15,11 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
 
+#include "core/AudioEngine.hpp"
 #include "core/Oscillators.hpp"
 #include "resources/WavetableStore.hpp"
 
 int main() {
-    dzsungel::resources::WavetableStore w;
-
-    auto t = w.find("default-sin");
+    AudioEngine en;
 }

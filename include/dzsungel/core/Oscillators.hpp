@@ -37,10 +37,6 @@ namespace dzsungel::core::oscillators {
 
     class WavetableOsc {
     private:
-        explicit WavetableOsc(const Wavetable* table)
-            : table_(table), tableSize_(table->size()),
-            invLen_(1.0f / static_cast<float>(table->size())) {}
-
         float phase_ = 0.0f;
         float phaseIncrement_ = 0.0f;
         const Wavetable* table_;
@@ -48,6 +44,10 @@ namespace dzsungel::core::oscillators {
         float invLen_;
 
     public:
+        explicit WavetableOsc(const Wavetable* table)
+            : table_(table), tableSize_(table->size()),
+            invLen_(1.0f / static_cast<float>(table->size())) {}
+
         [[nodiscard]] float get() const;
         [[nodiscard]] float get(float phaseDiff) const;
         [[nodiscard]] float at(float phase) const;

@@ -35,8 +35,9 @@ namespace dzsungel::core {
         WavetableStore wavetableStore_;
         VoiceAllocator allocator_;
         std::array<Voice, 16> voices_;
+        const AlgorithmImpl tempDefaultAlgorithm_ = createAlgorithmFromProgram(wavetableStore_, kDefaultProgram).value();
 
-        AlgorithmImpl defaultAlgorithm;
+        void handleNoteOn(const MidiMsg& msg);
 
     public:
         [[nodiscard]] size_t getCurrentTimecode() const {

@@ -17,6 +17,7 @@ set(SOURCES
         src/core/Algorithms.cpp
         src/core/Voice.cpp
         src/core/AudioEngine.cpp
+        src/resources/SynthProgram.cpp
 )
 
 # Library target containing all engine logic, with no main() of its own.
