@@ -38,6 +38,7 @@ namespace dzsungel::core {
         const AlgorithmImpl tempDefaultAlgorithm_ = createAlgorithmFromProgram(wavetableStore_, kDefaultProgram).value();
 
         void handleNoteOn(const MidiMsg& msg);
+        void renderVoices(SampleBuffer& buf, size_t currentIndex, size_t targetIndex);
 
     public:
         [[nodiscard]] size_t getCurrentTimecode() const {

@@ -29,7 +29,9 @@ namespace dzsungel::core {
         AlgorithmImpl algorithm_;
         ADSR ampEnv_;
         const ChannelState* channelInfo_ = nullptr;
+
         VoiceState state_ = VoiceState::IDLE;
+        bool transitionedToIdleFlag_ = false;
 
         uint8_t currentPitch_ = 255;
         uint8_t currentVelocity_ = 0;
@@ -53,7 +55,7 @@ namespace dzsungel::core {
 
         void noteOn(uint8_t noteNumber, uint8_t velocity);
         void noteOff();
-        void processBlock(SampleBuffer& buf);
+        void processBlock(SampleBuffer &buf, size_t start, size_t end);
 
         [[nodiscard]] VoiceState getState() const {
             return state_;
@@ -64,5 +66,19 @@ namespace dzsungel::core {
         [[nodiscard]] uint32_t getProgramId() const {
             return packedProgram_;
         }
+        [[nodiscard]] bool getIdleDirtyFlag() {
+            if (transitionedToIdleFlag_) {
+                transitionedToIdleFlag_ = false;
+                return true;
+            }
+            return false;
+        }
     };
+
+    inline size_t bufToFrameCount(SampleBuffer& buf) {
+        if (buf.stride == 1) {
+            return buf.data.size();
+        }
+        return buf.data.size() / buf.stride;
+    }
 }

@@ -71,6 +71,7 @@ namespace dzsungel::core::algorithms {
 
     void FeedbackAlgorithm::noteOn(float baseFreqHz, uint8_t velocity) {
         std::visit([&](auto& osc){ osc.frequencySet(baseFreqHz); }, carrier_);
+        baseFrequency_ = baseFreqHz;
         modEnv_.trigger();
     }
 
@@ -94,9 +95,9 @@ namespace dzsungel::core::algorithms {
             }, carrier_)
             * feedbackDepth;
 
-        const float retVal = std::visit([&](auto& osc){ return osc.get(delta); }, carrier_);
+        lastOutput = std::visit([&](auto& osc){ return osc.get(delta); }, carrier_);
 
         std::visit([&](auto& osc){ osc.advance(); }, carrier_);
-        return retVal;
+        return lastOutput;
     }
 } // namespace dzsungel::core::algorithms

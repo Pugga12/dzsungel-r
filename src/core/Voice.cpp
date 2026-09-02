@@ -23,13 +23,6 @@ namespace dzsungel::core {
         return 440.0f * std::exp2((note - 69.0f) / 12.0f);
     }
 
-    static size_t bufToFrameCount(SampleBuffer& buf) {
-        if (buf.stride == 1) {
-            return buf.data.size();
-        }
-        return buf.data.size() / buf.stride;
-    }
-
     void Voice::noteOn(uint8_t noteNumber, uint8_t velocity) {
         float frequency = noteToFrequency(noteNumber);
         std::visit([&](auto& a) {
@@ -56,7 +49,7 @@ namespace dzsungel::core {
         },algorithm_);
     }
 
-    void Voice::processBlock(SampleBuffer &buf) {
+    void Voice::processBlock(SampleBuffer &buf, size_t start, size_t end) {
         if (channelInfo_->stateVersion != lastChannelVersion_) {
             std::visit([&](auto& a) {
                 using T = std::decay_t<decltype(a)>;
@@ -66,9 +59,10 @@ namespace dzsungel::core {
             }, algorithm_);
         }
 
-        for (size_t i = 0; i < bufToFrameCount(buf); ++i) {
+        for (size_t i = start; i < end; ++i) {
             if (ampEnv_.getState() == ADSRState::IDLE) {
                 state_ = VoiceState::IDLE;
+                transitionedToIdleFlag_ = true;
                 break;
             }
 

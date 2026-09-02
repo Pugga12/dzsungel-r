@@ -35,7 +35,9 @@ namespace dzsungel::core::oscillators {
     }
     float WavetableOsc::get(float phaseDiff) const {
         float perturbedPhase = phase_ + phaseDiff;
-        perturbedPhase -= static_cast<float>(tableSize_) * std::floor(perturbedPhase);
+        if (perturbedPhase > tableSize_) {
+            perturbedPhase -= static_cast<float>(tableSize_) * std::floor(perturbedPhase);
+        }
         return at(perturbedPhase);
     }
 } // namespace dzsungel::core::oscillators

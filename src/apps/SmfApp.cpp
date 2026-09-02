@@ -21,4 +21,34 @@
 
 int main() {
     AudioEngine en;
+    std::array<float, 4096> outputTemp = {};
+    SampleBuffer b{
+        outputTemp,
+        1,
+        1
+    };
+
+    en.midiPush({
+        0,
+        MidiMsgType::ProgramChange,
+        0,
+        0,
+        0
+    });
+    en.midiPush({
+        10,
+        MidiMsgType::NoteOn,
+        0,
+        60,
+        0
+    });
+    en.midiPush({
+        4000,
+        MidiMsgType::NoteOff,
+        0,
+        60,
+        0
+    });
+
+    en.renderBlock(b);
 }

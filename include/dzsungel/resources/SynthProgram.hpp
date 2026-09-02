@@ -85,7 +85,7 @@ namespace dzsungel::resources {
     inline Program kDefaultProgram(
         "Default", 0, FeedbackParams{
             "default-sin",
-            1.5,
+            0.5,
             EnvelopeConfig{
                 std::chrono::duration<float>(0.01),
                 std::chrono::duration<float>(0.2),

@@ -25,39 +25,81 @@ namespace dzsungel::core {
 
         std::array<MidiMsg, kMaxEventsPerBlock> eventBuf_ = {};
         size_t eventsRecieved = 0;
-
-        MidiMsg msg;
-        while (eventsRecieved < kMaxEventsPerBlock && messageQueue_.pop(msg)) {
-            if (msg.absoluteSample >= blockStart && msg.absoluteSample < blockEnd) {
-                eventBuf_[eventsRecieved++] = msg;
-            } else if (msg.absoluteSample < blockStart) {
-                msg.absoluteSample = blockStart;
-                eventBuf_[eventsRecieved++] = msg;
+        {
+            MidiMsg msg;
+            while (eventsRecieved < kMaxEventsPerBlock && messageQueue_.pop(msg)) {
+                if (msg.absoluteSample >= blockStart && msg.absoluteSample < blockEnd) {
+                    eventBuf_[eventsRecieved++] = msg;
+                } else if (msg.absoluteSample < blockStart) {
+                    msg.absoluteSample = blockStart;
+                    eventBuf_[eventsRecieved++] = msg;
+                }
             }
         }
 
-        std::ranges::sort(eventBuf_, [](const auto& a, const auto& b) {
-            return a.absoluteSample < b.absoluteSample;
-        });
+//        std::ranges::sort(eventBuf_, [](const auto& a, const auto& b) {
+//            return a.absoluteSample < b.absoluteSample;
+//        });
 
         size_t currentSampleIdx = 0;
         const size_t blockSamples = buf.data.size() / buf.stride;
 
         for (size_t i = 0; i < eventsRecieved; ++i) {
             const auto& event = eventBuf_[i];
-            const size_t targetIdx = event.absoluteSample - blockStart;
+            size_t targetIdx = event.absoluteSample - blockStart;
 
             if (targetIdx > currentSampleIdx) {
-                // do something
+                renderVoices(buf, currentSampleIdx, targetIdx);
+                currentSampleIdx = targetIdx;
             }
 
-            if (msg.type == MidiMsgType::NoteOn) {
-                handleNoteOn(msg);
+            if (event.type == MidiMsgType::NoteOn) {
+                handleNoteOn(event);
+            } else if (event.type == MidiMsgType::NoteOff) {
+                const int8_t result = allocator_.release(event.channel, event.data1);
+                if (result != VoiceAllocator::kNotBound) {
+                    voices_[result].noteOff();
+                }
+            } else {
+                csiStore_.apply(event);
             }
         }
+
+        currentTimecode_.fetch_add(currentSampleIdx, std::memory_order_release);
     }
 
     void AudioEngine::handleNoteOn(const MidiMsg &msg) {
         auto [status, id] = allocator_.allocate(msg.channel, msg.data1, msg.absoluteSample);
+        auto& voice = voices_[id];
+        uint8_t cId = voice.getChannel();
+
+        if (
+            status == VoiceAllocStatus::DUPLICATE
+            || (cId == msg.channel && csiStore_.get(cId).packedProgId == voice.getProgramId())
+        ) {
+            voice.noteOn(msg.data1, msg.data2);
+        } else {
+            voice.provision(tempDefaultAlgorithm_, &csiStore_.get(msg.channel), msg.channel, kDefaultProgram.ampEnv);
+            voice.noteOn(msg.data1, msg.data2);
+        }
+    }
+
+    void AudioEngine::renderVoices(SampleBuffer &buf, size_t currentIndex, size_t targetIndex) {
+        if (size_t fc = bufToFrameCount(buf); currentIndex > fc || targetIndex > fc || currentIndex == targetIndex) {
+            return;
+        }
+
+        for (size_t i = 0; i < voices_.size(); i++) {
+            auto& v = voices_[i];
+            VoiceState state = v.getState();
+            if (state == VoiceState::IDLE && v.getIdleDirtyFlag()) {
+                allocator_.notifyIdle(i);
+                continue;
+            } else if (state == VoiceState::IDLE) {
+                continue;
+            }
+
+            v.processBlock(buf, currentIndex, targetIndex);
+        }
     }
 } // namespace dzsungel::core
