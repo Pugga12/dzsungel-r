@@ -24,6 +24,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-fetchcontent-
 
+      - name: Install boost
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libboost-all-dev
+
       - name: Configure CMake
         run: >
           cmake -B build 

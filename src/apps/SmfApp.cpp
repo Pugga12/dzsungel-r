@@ -30,9 +30,16 @@ int main() {
 
     en.midiPush({
         0,
+        MidiMsgType::CCBankLSB,
+        0,
+        8,
+        0
+    });
+    en.midiPush({
+        0,
         MidiMsgType::ProgramChange,
         0,
-        0,
+        48,
         0
     });
     en.midiPush({

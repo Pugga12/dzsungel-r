@@ -23,6 +23,8 @@
 namespace dzsungel::core {
     struct ChannelState {
         uint32_t stateVersion = 0;
+        uint8_t bankSelectMsb  = 0;
+        uint8_t bankSelectLsb = 0;
         uint32_t packedProgId = 0;
 
         int16_t pitchBendRaw = 0;

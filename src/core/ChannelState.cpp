@@ -18,12 +18,15 @@
 #include "core/ChannelState.hpp"
 #include <cstdint>
 
-inline int16_t pitchBendToSInt(const MidiMsg& msg) {
-    const uint16_t uFull = static_cast<uint16_t>(msg.data2 << 7) | static_cast<uint16_t>(msg.data1);
-    return uFull - 8192;
-}
+#include "resources/SynthProgram.hpp"
+using namespace dzsungel::resources;
 
 namespace dzsungel::core {
+    inline int16_t pitchBendToSInt(const MidiMsg& msg) {
+        const uint16_t uFull = static_cast<uint16_t>(msg.data2 << 7) | static_cast<uint16_t>(msg.data1);
+        return uFull - 8192;
+    }
+
     bool ChannelStateStore::apply(const MidiMsg &msg) {
         if (msg.channel > 15) {
             return false;
@@ -53,7 +56,21 @@ namespace dzsungel::core {
                 break;
             }
             case MidiMsgType::ProgramChange: {
-                c.packedProgId = msg.data1;
+                if (c.bankSelectLsb != 0 || c.bankSelectMsb != 0) {
+                    c.packedProgId = packProgramId(c.bankSelectMsb, c.bankSelectLsb, msg.data1);
+                } else {
+                    c.packedProgId = msg.data1;
+                }
+                valid = true;
+                break;
+            }
+            case MidiMsgType::CCBankMSB: {
+                c.bankSelectMsb = msg.data1;
+                valid = true;
+                break;
+            }
+            case MidiMsgType::CCBankLSB: {
+                c.bankSelectLsb = msg.data1;
                 valid = true;
                 break;
             }

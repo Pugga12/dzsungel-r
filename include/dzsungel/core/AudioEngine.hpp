@@ -22,6 +22,7 @@
 #include "Types.hpp"
 #include "Voice.hpp"
 #include "VoiceAllocator.hpp"
+#include "resources/ProgramLibrary.hpp"
 #include "resources/WavetableStore.hpp"
 
 using namespace dzsungel::resources;
@@ -35,12 +36,16 @@ namespace dzsungel::core {
         WavetableStore wavetableStore_;
         VoiceAllocator allocator_;
         std::array<Voice, 16> voices_;
-        const AlgorithmImpl tempDefaultAlgorithm_ = createAlgorithmFromProgram(wavetableStore_, kDefaultProgram).value();
+        ProgramLibrary patches_;
 
         void handleNoteOn(const MidiMsg& msg);
         void renderVoices(SampleBuffer& buf, size_t currentIndex, size_t targetIndex);
 
     public:
+        AudioEngine() {
+            patches_.add(kDefaultProgram);
+        }
+
         [[nodiscard]] size_t getCurrentTimecode() const {
             return currentTimecode_.load(std::memory_order_acquire);
         }

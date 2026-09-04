@@ -21,7 +21,7 @@
 using namespace dzsungel::core::algorithms;
 
 namespace dzsungel::resources {
-    std::optional<AlgorithmImpl> createAlgorithmFromProgram(WavetableStore& s, Program& p) {
+    std::optional<AlgorithmImpl> createAlgorithmFromProgram(WavetableStore &s, const Program &p) {
         if (std::holds_alternative<StandardPMParams>(p.algorithmParams)) {
             const auto& params = std::get<StandardPMParams>(p.algorithmParams);
 
