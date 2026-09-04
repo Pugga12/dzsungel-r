@@ -188,7 +188,10 @@ TEST(ChannelStateStoreTest, PitchBendTouchesOnlyPitchBendRaw) {
 // pitchBendToSInt() lives in ChannelState.cpp with external linkage but no
 // declaration in the public header, so it's forward-declared here to test
 // the 14-bit MIDI pitch-bend decode directly.
-int16_t pitchBendToSInt(const MidiMsg& msg);
+namespace dzsungel::core {
+    int16_t pitchBendToSInt(const MidiMsg& msg);
+}
+using namespace dzsungel::core;
 
 TEST(PitchBendToSIntTest, CenterValueDecodesToZero) {
     MidiMsg m{};
