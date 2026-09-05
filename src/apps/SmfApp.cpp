@@ -16,46 +16,10 @@
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
 
 #include "core/AudioEngine.hpp"
-#include "core/Oscillators.hpp"
-#include "resources/WavetableStore.hpp"
+#include "midi/Smf.hpp"
 
 int main() {
-    AudioEngine en;
-    std::array<float, 4096> outputTemp = {};
-    SampleBuffer b{
-        outputTemp,
-        1,
-        1
-    };
-
-    en.midiPush({
-        0,
-        MidiMsgType::CCBankLSB,
-        0,
-        8,
-        0
-    });
-    en.midiPush({
-        0,
-        MidiMsgType::ProgramChange,
-        0,
-        48,
-        0
-    });
-    en.midiPush({
-        10,
-        MidiMsgType::NoteOn,
-        0,
-        60,
-        0
-    });
-    en.midiPush({
-        4000,
-        MidiMsgType::NoteOff,
-        0,
-        60,
-        0
-    });
-
-    en.renderBlock(b);
+    AudioEngine eng;
+    dzsungel::midi::IOSmf smf(eng);
+    smf.load("/home/adama/midi/Bonanza Banzai - Induljon a banzai.mid");
 }
