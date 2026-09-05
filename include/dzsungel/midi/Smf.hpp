@@ -24,6 +24,8 @@
 using namespace smf;
 
 namespace dzsungel::midi {
+    constexpr uint32_t kReadaheadBufferLen = 128;
+
     struct ExtendedProgramState {
         uint8_t msb = 0;
         uint8_t lsb = 0;
@@ -36,11 +38,11 @@ namespace dzsungel::midi {
         std::vector<MidiMsg> events_;
         std::array<ExtendedProgramState, 16> states_ = {};
         bool loaded_ = false;
-        AudioEngine& engine_;
+        size_t eventsQueued_ = 0;
+        size_t numEvents = 0;
 
         void convertTrack(float sampleRate);
     public:
-        explicit IOSmf(AudioEngine& engine) : engine_(engine) {};
         bool load(const std::string &fName, float sampleRate = kDefaultSampleRate);
 
         [[nodiscard]] bool isLoaded() const {
@@ -49,6 +51,6 @@ namespace dzsungel::midi {
 
         void unload();
 
-        void tick();
+        void pushToEngine(AudioEngine &e, size_t readahead = kReadaheadBufferLen);
     };
 }

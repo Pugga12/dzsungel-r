@@ -20,6 +20,6 @@
 
 int main() {
     AudioEngine eng;
-    dzsungel::midi::IOSmf smf(eng);
+    dzsungel::midi::IOSmf smf;
     smf.load("/home/adama/midi/Bonanza Banzai - Induljon a banzai.mid");
 }

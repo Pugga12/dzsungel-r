@@ -124,6 +124,7 @@ namespace dzsungel::midi {
             return a.absoluteSample < b.absoluteSample;
         }));
 
+        numEvents = events_.size();
         file_.clear();
         loaded_ = true;
         return true;
@@ -133,5 +134,16 @@ namespace dzsungel::midi {
         events_.clear();
         events_.shrink_to_fit();
         loaded_ = false;
+    }
+
+    void IOSmf::pushToEngine(AudioEngine &e, size_t readahead) {
+        size_t current = e.getCurrentTimecode();
+        const size_t bufferEnd = current + readahead;
+
+        while (current < bufferEnd && eventsQueued_ < numEvents) {
+            const auto& ev = events_[eventsQueued_++];
+            e.midiPush(ev);
+            current = ev.absoluteSample;
+        }
     }
 } // namespace dzsungel::midi
