@@ -61,11 +61,9 @@ public:
     T next() {
         if (stepsRemaining_ == 0) {
             return target_;
-        } else if (stepsRemaining_ == stepsBase_) {
-            return base_;
         }
-        stepsRemaining_--;
         current_ += increment_;
+        stepsRemaining_--;
         return current_;
     };
 };

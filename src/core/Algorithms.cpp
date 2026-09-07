@@ -30,6 +30,7 @@ namespace dzsungel::core::algorithms {
     }
 
     void StandardPmAlgorithm::noteOn(float baseFreqHz, uint8_t velocity) {
+        setOscillatorFrequencies(baseFreqHz);
         baseFrequency_ = baseFreqHz;
         pitchBendRamp_.reset(baseFreqHz, baseFreqHz, 64);
         modEnv_.trigger();
@@ -70,8 +71,9 @@ namespace dzsungel::core::algorithms {
     }
 
     void FeedbackAlgorithm::noteOn(float baseFreqHz, uint8_t velocity) {
-        std::visit([&](auto& osc){ osc.frequencySet(baseFreqHz); }, carrier_);
+        setOscillatorFrequencies(baseFreqHz);
         baseFrequency_ = baseFreqHz;
+        pitchBendRamp_.reset(baseFreqHz, baseFreqHz, 32);
         modEnv_.trigger();
     }
 
@@ -80,12 +82,16 @@ namespace dzsungel::core::algorithms {
         float ratio = std::exp2(bendSemitones / 12.0f);
         float targetFreq = baseFrequency_ * ratio;
 
-        pitchBendRamp_.reset(pitchBendRamp_.isFinished() ? baseFrequency_ : pitchBendRamp_.next(), targetFreq, 64);
+        pitchBendRamp_.reset(pitchBendRamp_.isFinished() ? baseFrequency_ : pitchBendRamp_.next(), targetFreq, 32);
     }
 
     void FeedbackAlgorithm::release() { modEnv_.release(); }
 
     float FeedbackAlgorithm::renderNext() {
+        if (!pitchBendRamp_.isFinished()) {
+            setOscillatorFrequencies(pitchBendRamp_.next());
+        }
+
         const float modEnvVal = modEnv_.advance();
         const float feedbackDepth = modEnvVal * modIndex_;
 
@@ -99,5 +105,11 @@ namespace dzsungel::core::algorithms {
 
         std::visit([&](auto& osc){ osc.advance(); }, carrier_);
         return lastOutput;
+    }
+
+    void FeedbackAlgorithm::setOscillatorFrequencies(float freqHz) {
+        std::visit([&](auto& osc){
+            osc.frequencySet(freqHz);
+        }, carrier_);
     }
 } // namespace dzsungel::core::algorithms
