@@ -16,10 +16,11 @@
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
 
 #pragma once
+#include <Constants.hpp>
 #include <array>
+#include <atomic>
 #include <bitset>
 #include <cstdint>
-#include <Constants.hpp>
 
 namespace dzsungel::core {
     enum class VoiceAllocStatus : uint8_t {
@@ -40,6 +41,10 @@ namespace dzsungel::core {
         VoiceAllocResult allocate(uint8_t channel, uint8_t pitch, uint32_t sampleTime);
         int8_t release(uint8_t channel, uint8_t pitch);
         void notifyIdle(uint8_t voiceId);
+        [[nodiscard]] size_t getActiveVoiceCount() const {
+            return activeVoices_.load(std::memory_order_acquire);
+        }
+
         VoiceAllocator() {
             noteToVoice_.fill(kNotBound);
         }
@@ -55,8 +60,19 @@ namespace dzsungel::core {
         std::array<int8_t, kNumChannels * kNumNotes> noteToVoice_{};
         std::array<std::bitset<kMaxVoices>, kNumChannels> channelVoices_;
 
+        // this value will be checked by the main loop at the end of the song to determine whether we should halt,
+        // so it must be thread safe
+        std::atomic<size_t> activeVoices_ = 0;
+
         void bind(uint8_t id, uint8_t channel, uint8_t pitch, uint32_t triggeredAt);
         void unbind(uint8_t id);
         [[nodiscard]] std::pair<int, VoiceAllocStatus> findVictim(bool channelScoped, uint8_t channel) const;
+
+        void decrementActiveCount() {
+            activeVoices_.fetch_sub(1, std::memory_order_release);
+        }
+        void incrementActiveCount() {
+            activeVoices_.fetch_add(1, std::memory_order_release);
+        }
     };
 }

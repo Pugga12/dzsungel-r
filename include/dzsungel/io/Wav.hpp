@@ -14,12 +14,25 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
+#pragma once
+#include <memory>
 
-#include "core/AudioEngine.hpp"
-#include "midi/Smf.hpp"
+#include "Constants.hpp"
+#include "Types.hpp"
 
-int main() {
-    AudioEngine eng;
-    dzsungel::midi::IOSmf smf;
-    smf.load("/home/adama/midi/Bonanza Banzai - Induljon a banzai.mid");
+namespace dzsungel::io {
+    class WAVWriter {
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> pImpl;
+        bool open_ = false;
+    public:
+        bool open(const std::string& filename, float sampleRate = kDefaultSampleRate, uint32_t channels = 1);
+
+        size_t write(SampleBuffer& sb);
+        void close();
+
+        WAVWriter();
+        ~WAVWriter();
+    };
 }

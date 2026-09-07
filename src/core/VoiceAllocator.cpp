@@ -87,6 +87,7 @@ namespace dzsungel::core {
         for (uint8_t i = 0; i < kMaxVoices; ++i) {
             if (voices_[i].status == VoiceSlot::Status::Free) {
                 bind(i, channel, pitch, sampleTime);
+                incrementActiveCount();
                 return {VoiceAllocStatus::FRESH, i};
             }
         }
@@ -128,5 +129,6 @@ namespace dzsungel::core {
 
         channelVoices_[v.channel].reset(voiceId);
         v.status = VoiceSlot::Status::Free;
+        decrementActiveCount();
     }
 } // namespace dzsungel::core

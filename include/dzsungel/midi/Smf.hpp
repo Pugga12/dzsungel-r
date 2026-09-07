@@ -24,7 +24,7 @@
 using namespace smf;
 
 namespace dzsungel::midi {
-    constexpr uint32_t kReadaheadBufferLen = 128;
+    constexpr uint32_t kReadaheadBufferLen = 64;
 
     struct ExtendedProgramState {
         uint8_t msb = 0;
@@ -39,18 +39,24 @@ namespace dzsungel::midi {
         std::array<ExtendedProgramState, 16> states_ = {};
         bool loaded_ = false;
         size_t eventsQueued_ = 0;
-        size_t numEvents = 0;
+        size_t numEvents_ = 0;
 
         void convertTrack(float sampleRate);
     public:
-        bool load(const std::string &fName, float sampleRate = kDefaultSampleRate);
+        bool load(std::istream &fName, float sampleRate = kDefaultSampleRate);
 
         [[nodiscard]] bool isLoaded() const {
             return loaded_;
         }
+        [[nodiscard]] bool isPlaybackComplete() const {
+            return eventsQueued_ == numEvents_;
+        }
+        [[nodiscard]] const std::unordered_set<uint32_t>& getPreloadIds() const {
+            return preloads_;
+        }
 
         void unload();
 
-        void pushToEngine(AudioEngine &e, size_t readahead = kReadaheadBufferLen);
+        void pushToEngine(AudioEngine &e, size_t readaheadBuffer = kReadaheadBufferLen);
     };
 }

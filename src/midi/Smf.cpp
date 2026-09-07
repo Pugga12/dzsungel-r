@@ -82,6 +82,7 @@ namespace dzsungel::midi {
             MidiMsg msg = {};
             msg.type = type;
             msg.channel = static_cast<uint8_t>(ev.getChannel());
+            msg.absoluteSample = static_cast<uint32_t>(sampleRate * ev.seconds);
 
             if (type == MidiMsgType::NoteOn && ev.getVelocity() == 0) {
                 // note on events with v = 0 are treated as note off, rewire
@@ -110,7 +111,7 @@ namespace dzsungel::midi {
         }
     }
 
-    bool IOSmf::load(const std::string &fName, float sampleRate) {
+    bool IOSmf::load(std::istream &fName, float sampleRate) {
         if (loaded_) unload();
         if (!file_.read(fName)) return false;
 
@@ -124,7 +125,7 @@ namespace dzsungel::midi {
             return a.absoluteSample < b.absoluteSample;
         }));
 
-        numEvents = events_.size();
+        numEvents_ = events_.size();
         file_.clear();
         loaded_ = true;
         return true;
@@ -136,14 +137,18 @@ namespace dzsungel::midi {
         loaded_ = false;
     }
 
-    void IOSmf::pushToEngine(AudioEngine &e, size_t readahead) {
-        size_t current = e.getCurrentTimecode();
-        const size_t bufferEnd = current + readahead;
+    void IOSmf::pushToEngine(AudioEngine &e, size_t readaheadBuffer) {
+        size_t currentTc = e.getCurrentTimecode();
+        const size_t bufferEnd = currentTc + readaheadBuffer;
 
-        while (current < bufferEnd && eventsQueued_ < numEvents) {
-            const auto& ev = events_[eventsQueued_++];
+        while (eventsQueued_ < numEvents_) {
+            const auto& ev = events_[eventsQueued_];
+            currentTc = ev.absoluteSample;
+            if (currentTc >= bufferEnd) {
+                break;
+            }
             e.midiPush(ev);
-            current = ev.absoluteSample;
+            eventsQueued_++;
         }
     }
 } // namespace dzsungel::midi

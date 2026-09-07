@@ -65,6 +65,11 @@ namespace dzsungel::core {
             }
         }
 
+        if (currentSampleIdx < blockSamples) {
+            renderVoices(buf, currentSampleIdx, blockSamples );
+            currentSampleIdx = blockSamples - 1;
+        }
+
         currentTimecode_.fetch_add(currentSampleIdx, std::memory_order_release);
     }
 
