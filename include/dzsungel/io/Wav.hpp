@@ -14,48 +14,25 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
+#pragma once
+#include <memory>
 
-#include "core/AudioEngine.hpp"
-#include "core/Oscillators.hpp"
-#include "resources/WavetableStore.hpp"
+#include "Constants.hpp"
+#include "Types.hpp"
 
-int main() {
-    AudioEngine en;
-    std::array<float, 4096> outputTemp = {};
-    SampleBuffer b{
-        outputTemp,
-        1,
-        1
+namespace dzsungel::io {
+    class WAVWriter {
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> pImpl;
+        bool open_ = false;
+    public:
+        bool open(const std::string& filename, float sampleRate = kDefaultSampleRate, uint32_t channels = 1);
+
+        size_t write(SampleBuffer& sb);
+        void close();
+
+        WAVWriter();
+        ~WAVWriter();
     };
-
-    en.midiPush({
-        0,
-        MidiMsgType::CCBankLSB,
-        0,
-        8,
-        0
-    });
-    en.midiPush({
-        0,
-        MidiMsgType::ProgramChange,
-        0,
-        48,
-        0
-    });
-    en.midiPush({
-        10,
-        MidiMsgType::NoteOn,
-        0,
-        60,
-        0
-    });
-    en.midiPush({
-        4000,
-        MidiMsgType::NoteOff,
-        0,
-        60,
-        0
-    });
-
-    en.renderBlock(b);
 }

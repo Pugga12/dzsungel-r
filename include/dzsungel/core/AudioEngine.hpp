@@ -50,6 +50,10 @@ namespace dzsungel::core {
             return currentTimecode_.load(std::memory_order_acquire);
         }
 
+        [[nodiscard]] size_t getActiveVoiceCount() const {
+            return allocator_.getActiveVoiceCount();
+        }
+
         bool midiPush(const MidiMsg& msg) {
             return messageQueue_.push(msg);
         }

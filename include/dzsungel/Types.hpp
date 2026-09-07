@@ -23,7 +23,16 @@
 #include <span>
 
 enum class MidiMsgType : uint8_t {
-    NoteOn, NoteOff, PitchBend, CCExpression, CCVolume, CCPan, ProgramChange, CCBankMSB, CCBankLSB
+    CCBankMSB = 0,
+    CCVolume = 7,
+    CCPan = 10,
+    CCExpression = 11,
+    CCBankLSB = 32,
+    NoteOn = 128,
+    NoteOff = 129,
+    PitchBend = 130,
+    ProgramChange = 131,
+    Invalid = 255
 };
 
 struct MidiMsg {
