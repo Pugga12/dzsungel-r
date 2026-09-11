@@ -34,8 +34,8 @@ namespace dzsungel::core {
     void ADSR::configure(const EnvelopeConfig &cfg, float sampleRate) {
         oneShot_ = cfg.oneShot;
         rA_ = calcExpRatio(cfg.attack, sampleRate);
-        rD_ = calcExpRatio(cfg.release, sampleRate);
-        rR_ = calcExpRatio(cfg.decay, sampleRate);
+        rD_ = calcExpRatio(cfg.decay, sampleRate);
+        rR_ = calcExpRatio(cfg.release, sampleRate);
         sustain_ = cfg.sustain;
         state_ = ADSRState::IDLE;
     }
@@ -59,7 +59,7 @@ namespace dzsungel::core {
                 break;
             };
             case ADSRState::DECAY: {
-                y_ = (sustain_ - y_) * rD_;
+                y_ += (sustain_ - y_) * rD_;
                 if (y_ <= sustain_ + EPSILON) {
                     state_ = oneShot_ ? ADSRState::IDLE : ADSRState::SUSTAIN;
                     y_ = oneShot_ ? 0 : sustain_;

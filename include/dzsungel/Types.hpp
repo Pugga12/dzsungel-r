@@ -49,3 +49,10 @@ struct SampleBuffer {
     uint8_t channels = 1;
     uint8_t stride = 1;
 };
+
+// assert guards for CC values
+static_assert(static_cast<uint8_t>(MidiMsgType::CCBankMSB) == 0);
+static_assert(static_cast<uint8_t>(MidiMsgType::CCVolume) == 7);
+static_assert(static_cast<uint8_t>(MidiMsgType::CCPan) == 10);
+static_assert(static_cast<uint8_t>(MidiMsgType::CCExpression) == 11);
+static_assert(static_cast<uint8_t>(MidiMsgType::CCBankLSB) == 32);

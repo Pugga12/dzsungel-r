@@ -31,7 +31,7 @@ namespace dzsungel::midi {
     }
 
     enum class PayloadKind {
-        KeyValue, ValueOnly, Unsupported
+        KeyValue, ControlValue, ValueOnly, Unsupported
     };
 
     static PayloadKind classify(MidiMsgType t) {
@@ -46,12 +46,10 @@ namespace dzsungel::midi {
             case MidiMsgType::CCPan:
             case MidiMsgType::CCExpression:
             case MidiMsgType::PitchBend:
-                return PayloadKind::KeyValue;
+                return PayloadKind::ControlValue;
 
             case MidiMsgType::ProgramChange:
                 return PayloadKind::ValueOnly;
-
-
 
             default:
                 return PayloadKind::Unsupported;
@@ -99,6 +97,9 @@ namespace dzsungel::midi {
                     msg.data1 = ev[1];
                     msg.data2 = ev[2];
                     break;
+                case PayloadKind::ControlValue:
+                    msg.data1 = ev[2];
+                    msg.data2 = 0;
                 case PayloadKind::ValueOnly:
                     msg.data1 = ev[1];
                     msg.data2 = 0;

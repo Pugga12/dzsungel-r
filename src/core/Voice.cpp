@@ -75,7 +75,7 @@ namespace dzsungel::core {
             }, algorithm_);
 
             const float ampVal = ampEnv_.advance();
-            const float vol = ampVal * (channelInfo_->expression / 127.0f) * (channelInfo_->volume / 127.0f);
+            const float vol = ampVal * ((channelInfo_->expression / 127.0f) * (channelInfo_->volume / 127.0f));
             sample *= vol;
 
             if (buf.channels == 1) {

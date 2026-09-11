@@ -97,7 +97,7 @@ namespace dzsungel::core::algorithms {
 
         const float delta = lastOutput *
             std::visit([&](auto& osc) {
-                return static_cast<float>(osc.getTableSize()) / std::numbers::pi_v<float>;
+                return static_cast<float>(osc.getTableSize()) / (2 * std::numbers::pi_v<float>);
             }, carrier_)
             * feedbackDepth;
 
