@@ -27,7 +27,7 @@ using namespace dzsungel::midi;
 int main() {
     spdlog::set_level(spdlog::level::debug);
 
-    const std::string filename = "/home/adama/midi/monty-2.mid";
+    const std::string filename = "C:\\Users\\jma\\Music\\midi\\monty-2.mid";
     std::ifstream smfFilestream(filename, std::ios::binary);
     if (!smfFilestream.is_open()) {
         spdlog::error("Failed to open file: {}\n\tWhat happened: {}", filename, std::strerror(errno));

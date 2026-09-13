@@ -18,6 +18,7 @@
 #include "core/Algorithms.hpp"
 
 #include <cmath>
+#include <numbers>
 
 namespace dzsungel::core::algorithms {
     void StandardPmAlgorithm::setOscillatorFrequencies(float freqHz) {
@@ -32,7 +33,7 @@ namespace dzsungel::core::algorithms {
     void StandardPmAlgorithm::noteOn(float baseFreqHz, uint8_t velocity) {
         setOscillatorFrequencies(baseFreqHz);
         baseFrequency_ = baseFreqHz;
-        pitchBendRamp_.reset(baseFreqHz, baseFreqHz, 64);
+        pitchBendRamp_.reset(baseFreqHz, baseFreqHz, 32);
         modEnv_.trigger();
     }
 
@@ -41,7 +42,7 @@ namespace dzsungel::core::algorithms {
         float ratio = std::exp2(bendSemitones / 12.0f);
         float targetFreq = baseFrequency_ * ratio;
 
-        pitchBendRamp_.reset(pitchBendRamp_.isFinished() ? baseFrequency_ : pitchBendRamp_.next(), targetFreq, 64);
+        pitchBendRamp_.reset(pitchBendRamp_.isFinished() ? baseFrequency_ : pitchBendRamp_.next(), targetFreq, 32);
     }
 
     void StandardPmAlgorithm::release() { modEnv_.release(); }

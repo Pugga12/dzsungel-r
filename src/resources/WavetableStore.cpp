@@ -18,6 +18,7 @@
 #include "resources/WavetableStore.hpp"
 
 #include <cmath>
+#include <numbers>
 
 namespace dzsungel::resources {
     const Wavetable *WavetableStore::generateSine(std::string_view id, size_t length) {

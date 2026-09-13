@@ -38,6 +38,7 @@ namespace dzsungel::midi {
         switch (t) {
             case MidiMsgType::NoteOn:
             case MidiMsgType::NoteOff:
+            case MidiMsgType::PitchBend:
                 return PayloadKind::KeyValue;
 
             case MidiMsgType::CCBankLSB:
@@ -45,7 +46,6 @@ namespace dzsungel::midi {
             case MidiMsgType::CCVolume:
             case MidiMsgType::CCPan:
             case MidiMsgType::CCExpression:
-            case MidiMsgType::PitchBend:
                 return PayloadKind::ControlValue;
 
             case MidiMsgType::ProgramChange:

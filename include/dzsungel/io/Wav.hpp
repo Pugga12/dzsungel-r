@@ -19,6 +19,7 @@
 
 #include "Constants.hpp"
 #include "Types.hpp"
+#include <string>
 
 namespace dzsungel::io {
     class WAVWriter {

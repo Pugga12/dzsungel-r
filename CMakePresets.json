@@ -1,30 +1,70 @@
 {
     "version": 8,
-    "configurePresets": [
-        {
-            "name": "Default",
-            "displayName": "Clang 21.1.8 aarch64-redhat-linux-gnu",
-            "description": "Using compilers: C = /usr/sbin/clang, CXX = /usr/sbin/clang++",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "generator": "Ninja",
-            "cacheVariables": {
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-                "CMAKE_C_COMPILER": "/usr/sbin/clang",
-                "CMAKE_CXX_COMPILER": "/usr/sbin/clang++",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "GCC 15.3.1 aarch64-redhat-linux",
-            "displayName": "GCC 15.3.1 aarch64-redhat-linux",
-            "description": "Using compilers: C = /usr/sbin/aarch64-redhat-linux-gcc, CXX = /usr/sbin/aarch64-redhat-linux-g++",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-                "CMAKE_C_COMPILER": "/usr/sbin/aarch64-redhat-linux-gcc",
-                "CMAKE_CXX_COMPILER": "/usr/sbin/aarch64-redhat-linux-g++",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
+  "configurePresets": [
+    {
+      "name": "Default-Clang",
+      "displayName": "Clang 21.1.8 aarch64-redhat-linux-gnu",
+      "description": "Using compilers: C = /usr/sbin/clang, CXX = /usr/sbin/clang++",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+        "CMAKE_C_COMPILER": "/usr/sbin/clang",
+        "CMAKE_CXX_COMPILER": "/usr/sbin/clang++",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "windows-default",
+      "displayName": "Windows arm64 Debug",
+      "description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, debug build type",
+      "generator": "Visual Studio 18 2026",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "architecture": {
+        "value": "ARM64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [ "Windows" ]
         }
-    ]
+      }
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows arm64 Release",
+      "description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, debug build type",
+      "generator": "Visual Studio 18 2026",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "architecture": {
+        "value": "ARM64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [ "Windows" ]
+        }
+      }
+    },
+    {
+      "name": "GCC 15.3.1 aarch64-redhat-linux",
+      "displayName": "GCC 15.3.1 aarch64-redhat-linux",
+      "description": "Using compilers: C = /usr/sbin/aarch64-redhat-linux-gcc, CXX = /usr/sbin/aarch64-redhat-linux-g++",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+        "CMAKE_C_COMPILER": "/usr/sbin/aarch64-redhat-linux-gcc",
+        "CMAKE_CXX_COMPILER": "/usr/sbin/aarch64-redhat-linux-g++",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ]
 }

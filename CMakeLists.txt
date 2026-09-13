@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
-project(dzsungel-r VERSION 0.1)
-
-set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+project(dzsungel-r VERSION 0.1)
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 find_package(Boost REQUIRED)
 
 add_subdirectory(libs/midifile)
@@ -37,9 +37,20 @@ target_include_directories(dzsungel-core PUBLIC ${PROJECT_SOURCE_DIR}/include/dz
 target_link_libraries(dzsungel-core PRIVATE Boost::headers midifile dr_wav)
 
 add_executable(dzsmf apps/SmfApp.cpp)
-target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog)
+
+target_compile_options(dzsmf PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:
+        /permissive-
+        /Zc:enumTypes
+        $<$<CONFIG:Debug>:/Od /ZI>
+        $<$<CONFIG:Release>:/Zi>
+    >
+)
+
+target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog Boost::headers)
 
 option(DZSUNGEL_BUILD_TESTS "Build the GoogleTest-based test suite" OFF)
+option(DBG_RV_LOG_CSV "Log RampingValue operations to csv file" OFF)
 if (DZSUNGEL_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

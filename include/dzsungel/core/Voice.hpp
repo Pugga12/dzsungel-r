@@ -17,6 +17,9 @@
 #pragma once
 #include "Algorithms.hpp"
 #include "ChannelState.hpp"
+#include "ADSR.hpp"
+#include "ChannelState.hpp"
+#include <cstdint>
 
 using namespace dzsungel::core::algorithms;
 namespace dzsungel::core {
