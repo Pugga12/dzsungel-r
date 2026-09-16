@@ -99,7 +99,7 @@ namespace dzsungel::core {
             return;
         }
 
-        for (size_t i = 0; i < voices_.size(); i++) {
+        for (uint8_t i = 0; i < voices_.size(); i++) {
             auto& v = voices_[i];
             VoiceState state = v.getState();
             if (state == VoiceState::IDLE && v.getIdleDirtyFlag()) {

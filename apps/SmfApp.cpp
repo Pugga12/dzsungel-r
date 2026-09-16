@@ -20,28 +20,49 @@
 #include "midi/Smf.hpp"
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/chrono.h"
+#include "CLI/CLI.hpp"
 
 using namespace dzsungel::io;
 using namespace dzsungel::midi;
 
-int main() {
-    spdlog::set_level(spdlog::level::debug);
+int main(int argc, char** argv) {
+    // setup logging and command parsing
+    CLI::App app{"Synthesizes notes from a .mid file into audio", "dzsmf"};
+    
 
-    const std::string filename = "C:\\Users\\jma\\Music\\midi\\monty-2.mid";
-    std::ifstream smfFilestream(filename, std::ios::binary);
+    float masterGainDb = -6.0f;
+    std::string infileName;
+    std::string outfileName = "out.wav";
+    bool logVerbose = false;
+    app.add_option("-g,--gain", masterGainDb, "Master gain in dB")->capture_default_str();
+    app.add_option("InputFile", infileName, "Path to input .midi file")->required()->check(CLI::ExistingFile);
+    app.add_option("-o,--output", outfileName, "The name of the output file to write to.")->capture_default_str();
+    app.add_flag("--verbose", logVerbose, "Enable verbose logging. Does not do much right now, but will later");
+
+    CLI11_PARSE(app, argc, argv);
+
+    if (logVerbose) {
+        spdlog::set_level(spdlog::level::debug);
+    }
+
+    // Load input file
+    std::ifstream smfFilestream(infileName, std::ios::binary);
     if (!smfFilestream.is_open()) {
-        spdlog::error("Failed to open file: {}\n\tWhat happened: {}", filename, std::strerror(errno));
+        int errCode = errno;
+        spdlog::error("Failed to open file: {}\n\tWhat happened: ({}) {}", infileName, errCode, std::system_category().message(errCode));
         return 1;
     }
 
+    // Parse input file
     AudioEngine eng;
     IOSmf smfReader;
     if (!smfReader.load(smfFilestream)) {
-        spdlog::error("Failed to parse MIDI file: {}", filename);
+        spdlog::error("Failed to parse MIDI file: {}", infileName);
         return 2;
     }
 
-    if (spdlog::get_level() == spdlog::level::debug) {
+    // If verbose log level: output the programs preloaded in the midi file
+    if (logVerbose) {
         std::string numbers;
         for (const auto& pNo : smfReader.getPreloadIds()) {
             numbers.append(std::to_string(pNo) + ", ");
@@ -49,11 +70,14 @@ int main() {
         spdlog::debug("Preloaded program IDs: {}", numbers);
     }
 
+    // Open outfile; currently will overwrite out.wav
     WAVWriter wavWriter;
-    if (const std::string outFile = "out.wav"; !wavWriter.open(outFile)) {
-        spdlog::error("Failed to create WAV file: {}", outFile);
+    if (!wavWriter.open(outfileName)) {
+        spdlog::error("Failed to create WAV file: {}", outfileName);
+        return 3;
     }
 
+    // initialize buffer
     size_t framesWritten = 0;
     std::vector<float> buffer(64);
     std::ranges::fill(buffer, 0.0f);
@@ -65,6 +89,7 @@ int main() {
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
+        // halt if all messages have been queued by the reader and if all voices are inactive
         if (smfReader.isPlaybackComplete() && eng.getActiveVoiceCount() == 0) {
             break;
         }
@@ -75,6 +100,8 @@ int main() {
 
         std::ranges::fill(buffer, 0.0f);
     }
+
+    // calculate time taken at end of loop
     auto end = std::chrono::steady_clock::now();
     auto finishedIn = end - start;
     std::chrono::duration<float> dSec = finishedIn;

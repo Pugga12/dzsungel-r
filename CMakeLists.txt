@@ -8,6 +8,7 @@ find_package(Boost REQUIRED)
 
 add_subdirectory(libs/midifile)
 add_subdirectory(libs/dr_wav)
+add_subdirectory(libs/CLI11)
 include(FetchContent)
 fetchcontent_declare(
         spdlog
@@ -38,16 +39,19 @@ target_link_libraries(dzsungel-core PRIVATE Boost::headers midifile dr_wav)
 
 add_executable(dzsmf apps/SmfApp.cpp)
 
-target_compile_options(dzsmf PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:
-        /permissive-
-        /Zc:enumTypes
+if (MSVC)
+    target_compile_options(dzsmf PRIVATE
+        /W4
+        /permissive- 
+        /Zc:enumTypes 
         $<$<CONFIG:Debug>:/Od /ZI>
         $<$<CONFIG:Release>:/Zi>
-    >
-)
+    )
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang") 
+    target_compile_definitions(dzsmf PRIVATE /Wall /Wextra /Wpedantic)
+endif()
 
-target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog Boost::headers)
+target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog Boost::headers CLI11::CLI11)
 
 option(DZSUNGEL_BUILD_TESTS "Build the GoogleTest-based test suite" OFF)
 option(DBG_RV_LOG_CSV "Log RampingValue operations to csv file" OFF)
