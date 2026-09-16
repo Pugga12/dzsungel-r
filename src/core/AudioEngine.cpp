@@ -88,8 +88,8 @@ namespace dzsungel::core {
             const Program* prg = patches_.find(csi.packedProgId, true).value();
 
             voice.provision(
-                createAlgorithmFromProgram(wavetableStore_, *prg).value()
-                , &csi, msg.channel, kDefaultProgram.ampEnv);
+                createAlgorithmFromProgram(wavetableStore_, *prg, sampleRate_).value()
+                , &csi, msg.channel, kDefaultProgram.ampEnv, sampleRate_);
             voice.noteOn(msg.data1, msg.data2);
         }
     }

@@ -30,8 +30,8 @@ namespace dzsungel::core::oscillators {
         phase_ += phaseIncrement_;
         while (phase_ >= tableSize_) phase_ -= tableSize_;
     }
-    void WavetableOsc::frequencySet(float frequency, float sampleRate) {
-        phaseIncrement_ = (static_cast<float>(tableSize_) * frequency) / sampleRate;
+    void WavetableOsc::frequencySet(float frequency) {
+        phaseIncrement_ = (static_cast<float>(tableSize_) * frequency) / sampleRate_;
     }
     float WavetableOsc::get(float phaseDiff) const {
         float perturbedPhase = phase_ + phaseDiff;

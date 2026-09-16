@@ -80,7 +80,7 @@ namespace dzsungel::resources {
             : name(str), packedProgramId(packedId), type(AlgorithmType::FEEDBACK),algorithmParams(alParams), ampEnv(ampEnv) {}
     };
 
-    std::optional<AlgorithmImpl> createAlgorithmFromProgram(WavetableStore &s, const Program &p);
+    std::optional<AlgorithmImpl> createAlgorithmFromProgram(WavetableStore &s, const Program &p, float sampleRate);
 
     inline Program kDefaultProgram(
         "Default", packProgramId(0, 8, 48), FeedbackParams{

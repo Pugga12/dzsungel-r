@@ -12,7 +12,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          submodules: true
 
       # Cache FetchContent dependencies (like Google Test) to speed up CI runs
       - name: Cache FetchContent

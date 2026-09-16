@@ -21,19 +21,36 @@ include_directories(${PROJECT_SOURCE_DIR}/include/dzsungel)
 
 set(SOURCES
     src/resources/WavetableStore.cpp
-        src/core/ChannelState.cpp
-        src/core/VoiceAllocator.cpp
-        src/core/Oscillators.cpp
-        src/core/ADSR.cpp
-        src/core/Algorithms.cpp
-        src/core/Voice.cpp
-        src/core/AudioEngine.cpp
-        src/resources/SynthProgram.cpp
-        src/midi/Smf.cpp
-        src/io/Wav.cpp
+    src/core/ChannelState.cpp
+    src/core/VoiceAllocator.cpp
+    src/core/Oscillators.cpp
+    src/core/ADSR.cpp
+    src/core/Algorithms.cpp
+    src/core/Voice.cpp
+    src/core/AudioEngine.cpp
+    src/resources/SynthProgram.cpp
+    src/midi/Smf.cpp
+    src/io/Wav.cpp
 )
 
-add_library(dzsungel-core STATIC ${SOURCES})
+set (HEADERS 
+    include/dzsungel/resources/WavetableStore.hpp
+    include/dzsungel/core/ChannelState.hpp
+    include/dzsungel/core/VoiceAllocator.hpp
+    include/dzsungel/core/Oscillators.hpp
+    include/dzsungel/core/ADSR.hpp
+    include/dzsungel/core/Algorithms.hpp
+    include/dzsungel/core/Voice.hpp
+    include/dzsungel/core/AudioEngine.hpp
+    include/dzsungel/resources/SynthProgram.hpp
+    include/dzsungel/midi/Smf.hpp
+    include/dzsungel/io/Wav.hpp
+    include/dzsungel/Constants.hpp
+    include/dzsungel/RampingValue.hpp
+    include/dzsungel/Types.hpp
+)
+
+add_library(dzsungel-core STATIC ${SOURCES} ${HEADERS})
 target_include_directories(dzsungel-core PUBLIC ${PROJECT_SOURCE_DIR}/include/dzsungel)
 target_link_libraries(dzsungel-core PRIVATE Boost::headers midifile dr_wav)
 

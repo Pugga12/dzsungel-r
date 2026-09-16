@@ -24,7 +24,7 @@
 using namespace smf;
 
 namespace dzsungel::midi {
-    constexpr uint32_t kReadaheadBufferLen = 64;
+    constexpr uint32_t kReadaheadBufferLen = 8192;
 
     struct ExtendedProgramState {
         uint8_t msb = 0;
@@ -43,7 +43,7 @@ namespace dzsungel::midi {
 
         void convertTrack(float sampleRate);
     public:
-        bool load(std::istream &fName, float sampleRate = kDefaultSampleRate);
+        bool load(std::istream &fName, float sampleRate);
 
         [[nodiscard]] bool isLoaded() const {
             return loaded_;

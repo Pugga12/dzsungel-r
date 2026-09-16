@@ -37,12 +37,13 @@ namespace dzsungel::core {
         VoiceAllocator allocator_;
         std::array<Voice, 16> voices_;
         ProgramLibrary patches_;
+        float sampleRate_;
 
         void handleNoteOn(const MidiMsg& msg);
         void renderVoices(SampleBuffer& buf, size_t currentIndex, size_t targetIndex);
 
     public:
-        AudioEngine() {
+        AudioEngine(float sampleRate) : sampleRate_(sampleRate)  {
             patches_.add(kDefaultProgram);
         }
 

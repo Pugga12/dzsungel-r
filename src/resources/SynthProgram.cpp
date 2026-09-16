@@ -21,7 +21,7 @@
 using namespace dzsungel::core::algorithms;
 
 namespace dzsungel::resources {
-    std::optional<AlgorithmImpl> createAlgorithmFromProgram(WavetableStore &s, const Program &p) {
+    std::optional<AlgorithmImpl> dzsungel::resources::createAlgorithmFromProgram(WavetableStore &s, const Program &p, float sampleRate) {
         if (std::holds_alternative<StandardPMParams>(p.algorithmParams)) {
             const auto& params = std::get<StandardPMParams>(p.algorithmParams);
 
@@ -30,11 +30,11 @@ namespace dzsungel::resources {
 
             if (!carrierTable.has_value() || !modTable.has_value()) return std::nullopt;
 
-            PhaseOsc carrier = WavetableOsc(carrierTable.value());
-            PhaseOsc modulator = WavetableOsc(modTable.value());
+            PhaseOsc carrier = WavetableOsc(carrierTable.value(), sampleRate);
+            PhaseOsc modulator = WavetableOsc(modTable.value(), sampleRate);
 
             return std::make_optional(
-                StandardPmAlgorithm(carrier, modulator, p)
+                StandardPmAlgorithm(carrier, modulator, p, sampleRate)
             );
         } else {
             const auto& params = std::get<FeedbackParams>(p.algorithmParams);
@@ -42,10 +42,10 @@ namespace dzsungel::resources {
             const auto carrierTable = s.find(params.carrierTblName);
             if (!carrierTable.has_value()) return std::nullopt;
 
-            PhaseOsc carrier = WavetableOsc(carrierTable.value());
+            PhaseOsc carrier = WavetableOsc(carrierTable.value(), sampleRate);
 
             return std::make_optional(
-                FeedbackAlgorithm(carrier, p)
+                FeedbackAlgorithm(carrier, p, sampleRate)
             );
         }
     }

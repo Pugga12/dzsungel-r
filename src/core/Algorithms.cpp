@@ -109,8 +109,7 @@ namespace dzsungel::core::algorithms {
     }
 
     void FeedbackAlgorithm::setOscillatorFrequencies(float freqHz) {
-        std::visit([&](auto& osc){
-            osc.frequencySet(freqHz);
+        std::visit([&](auto& osc){ osc.frequencySet(freqHz);
         }, carrier_);
     }
 } // namespace dzsungel::core::algorithms

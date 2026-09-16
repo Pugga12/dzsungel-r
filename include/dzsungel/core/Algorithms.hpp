@@ -49,10 +49,10 @@ namespace dzsungel::core::algorithms {
         void setOscillatorFrequencies(float freqHz);
 
     public:
-        StandardPmAlgorithm(PhaseOsc carrier, PhaseOsc modulator, const Program& p)
+        StandardPmAlgorithm(PhaseOsc carrier, PhaseOsc modulator, const Program& p, float sampleRate)
             : carrier_(carrier), modulator_(modulator) {
             const auto& params = std::get<StandardPMParams>(p.algorithmParams);
-            modEnv_.configure(params.modEnv);
+            modEnv_.configure(params.modEnv, sampleRate);
             cToMRatio_ = params.cToMRatio;
             modIndex_ = params.modIndex;
         }
@@ -74,11 +74,11 @@ namespace dzsungel::core::algorithms {
         void setOscillatorFrequencies(float freqHz);
 
     public:
-        FeedbackAlgorithm(PhaseOsc carrier, const Program& p)
+        FeedbackAlgorithm(PhaseOsc carrier, const Program& p, float sampleRate)
             : carrier_(carrier) {
             const auto& params = std::get<FeedbackParams>(p.algorithmParams);
             modIndex_ = params.modIndex;
-            modEnv_.configure(params.modEnv);
+            modEnv_.configure(params.modEnv, sampleRate);
         }
 
         void noteOn(float baseFreqHz, uint8_t velocity);

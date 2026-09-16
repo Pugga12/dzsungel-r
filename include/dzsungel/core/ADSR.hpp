@@ -34,7 +34,7 @@ namespace dzsungel::core {
 
     class ADSR {
     public:
-        void configure(const EnvelopeConfig& cfg, float sampleRate = kDefaultSampleRate);
+        void configure(const EnvelopeConfig& cfg, float sampleRate);
         void trigger(bool oneShot = false);
         void release();
         float advance();

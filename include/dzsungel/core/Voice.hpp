@@ -47,10 +47,11 @@ namespace dzsungel::core {
             const AlgorithmImpl& newAlgorithm,
             const ChannelState* channel,
             const uint8_t cId,
-            const EnvelopeConfig &ampEnvConfig
+            const EnvelopeConfig &ampEnvConfig,
+            float sampleRate
         ) {
             algorithm_ = newAlgorithm;
-            ampEnv_.configure(ampEnvConfig);
+            ampEnv_.configure(ampEnvConfig, sampleRate);
             channelInfo_ = channel;
             channelId_ = cId;
             packedProgram_ = channel->packedProgId;

@@ -34,15 +34,29 @@ int main(int argc, char** argv) {
     std::string infileName;
     std::string outfileName = "out.wav";
     bool logVerbose = false;
-    app.add_option("-g,--gain", masterGainDb, "Master gain in dB")->capture_default_str();
+    bool linearGainFlag = false;
+    float sampleRate = kDefaultSampleRate;
+    auto* optGain = app.add_option("-g,--gain", masterGainDb, "Master gain in dB")->capture_default_str();
     app.add_option("InputFile", infileName, "Path to input .midi file")->required()->check(CLI::ExistingFile);
     app.add_option("-o,--output", outfileName, "The name of the output file to write to.")->capture_default_str();
-    app.add_flag("--verbose", logVerbose, "Enable verbose logging. Does not do much right now, but will later");
+    app.add_option("-s,--sample-rate", sampleRate, "Output sample rate")->check(CLI::PositiveNumber)->capture_default_str();
+    app.add_flag("-v,--verbose", logVerbose, "Enable verbose logging. Does not do much right now, but will later");
+    app.add_flag("-l,--linear-gain", linearGainFlag, "Treat specified gain as linear. Requires you to input a gain level.")
+            ->needs(optGain);
+    app.allow_windows_style_options();
 
     CLI11_PARSE(app, argc, argv);
 
     if (logVerbose) {
         spdlog::set_level(spdlog::level::debug);
+    }
+
+    float linearizedGain = 0;
+    if (!linearGainFlag) {
+        linearizedGain = std::pow(10, masterGainDb * 0.05f);
+    } else {
+        //  gain is set and linearized, pass right through
+        linearizedGain = masterGainDb;
     }
 
     // Load input file
@@ -54,9 +68,9 @@ int main(int argc, char** argv) {
     }
 
     // Parse input file
-    AudioEngine eng;
+    AudioEngine eng(sampleRate);
     IOSmf smfReader;
-    if (!smfReader.load(smfFilestream)) {
+    if (!smfReader.load(smfFilestream, sampleRate)) {
         spdlog::error("Failed to parse MIDI file: {}", infileName);
         return 2;
     }
@@ -72,14 +86,14 @@ int main(int argc, char** argv) {
 
     // Open outfile; currently will overwrite out.wav
     WAVWriter wavWriter;
-    if (!wavWriter.open(outfileName)) {
+    if (!wavWriter.open(outfileName, sampleRate)) {
         spdlog::error("Failed to create WAV file: {}", outfileName);
         return 3;
     }
 
     // initialize buffer
     size_t framesWritten = 0;
-    std::vector<float> buffer(64);
+    std::vector<float> buffer(8192);
     std::ranges::fill(buffer, 0.0f);
     SampleBuffer sampleBuf {
         .data = buffer,
@@ -96,6 +110,10 @@ int main(int argc, char** argv) {
 
         smfReader.pushToEngine(eng);
         eng.renderBlock(sampleBuf);
+
+        for (auto &v: buffer) {
+            v *= linearizedGain;
+        }
         framesWritten += wavWriter.write(sampleBuf);
 
         std::ranges::fill(buffer, 0.0f);
@@ -105,7 +123,7 @@ int main(int argc, char** argv) {
     auto end = std::chrono::steady_clock::now();
     auto finishedIn = end - start;
     std::chrono::duration<float> dSec = finishedIn;
-    const float lenToWrite = static_cast<float>(framesWritten) / kDefaultSampleRate;
+    const float lenToWrite = static_cast<float>(framesWritten) / sampleRate;
 
     spdlog::info("Done, took {} to process {} s of audio", dSec,  lenToWrite);
     spdlog::info("Speedup: {}x", lenToWrite / dSec.count());

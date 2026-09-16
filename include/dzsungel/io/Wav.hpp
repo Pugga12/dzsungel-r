@@ -28,7 +28,7 @@ namespace dzsungel::io {
         std::unique_ptr<Impl> pImpl;
         bool open_ = false;
     public:
-        bool open(const std::string& filename, float sampleRate = kDefaultSampleRate, uint32_t channels = 1);
+        bool open(const std::string& filename, float sampleRate, uint32_t channels = 1);
 
         size_t write(SampleBuffer& sb);
         void close();
