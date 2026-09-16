@@ -100,6 +100,7 @@ namespace dzsungel::midi {
                 case PayloadKind::ControlValue:
                     msg.data1 = ev[2];
                     msg.data2 = 0;
+                    break;
                 case PayloadKind::ValueOnly:
                     msg.data1 = ev[1];
                     msg.data2 = 0;
