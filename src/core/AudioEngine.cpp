@@ -17,7 +17,7 @@
 #include "core/AudioEngine.hpp"
 
 namespace dzsungel::core {
-    constexpr size_t kMaxEventsPerBlock = 64;
+    constexpr size_t kMaxEventsPerBlock = 256;
 
     void AudioEngine::renderBlock(SampleBuffer &buf) {
         const size_t blockStart = currentTimecode_.load(std::memory_order_acquire);
@@ -37,9 +37,11 @@ namespace dzsungel::core {
             }
         }
 
-//        std::ranges::sort(eventBuf_, [](const auto& a, const auto& b) {
-//            return a.absoluteSample < b.absoluteSample;
-//        });
+        // in applications where the event queuer is guaranteed to be 110% chronological, we may skip the sorting step.
+        if (!usingChronologicalQueuer_) {
+            std::sort(eventBuf_.begin(), eventBuf_.begin() + eventsRecieved,
+                      [](const auto &a, const auto &b) { return a.absoluteSample < b.absoluteSample; });
+        }
 
         size_t currentSampleIdx = 0;
         const size_t blockSamples = buf.data.size() / buf.stride;
@@ -67,10 +69,9 @@ namespace dzsungel::core {
 
         if (currentSampleIdx < blockSamples) {
             renderVoices(buf, currentSampleIdx, blockSamples );
-            currentSampleIdx = blockSamples - 1;
         }
 
-        currentTimecode_.fetch_add(currentSampleIdx, std::memory_order_release);
+        currentTimecode_.fetch_add(blockSamples, std::memory_order_release);
     }
 
     void AudioEngine::handleNoteOn(const MidiMsg &msg) {

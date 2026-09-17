@@ -33,6 +33,7 @@ namespace dzsungel::io {
         format.channels = channels;
         format.sampleRate = static_cast<uint32_t>(sampleRate);
         format.bitsPerSample = 32;
+        channels_ = channels;
 
         if (!drwav_init_file_write(&pImpl->res, filename.c_str(), &format, nullptr)) {
             return false;
@@ -43,7 +44,7 @@ namespace dzsungel::io {
 
     size_t WAVWriter::write(SampleBuffer &sb) {
         if (open_) {
-            return drwav_write_pcm_frames(&pImpl->res, sb.data.size(), sb.data.data());
+            return drwav_write_pcm_frames(&pImpl->res, sb.data.size() / channels_, sb.data.data());
         }
         return 0;
     }

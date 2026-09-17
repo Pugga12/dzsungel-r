@@ -38,6 +38,7 @@ namespace dzsungel::core {
         std::array<Voice, 16> voices_;
         ProgramLibrary patches_;
         float sampleRate_;
+        bool usingChronologicalQueuer_ = true;
 
         void handleNoteOn(const MidiMsg& msg);
         void renderVoices(SampleBuffer& buf, size_t currentIndex, size_t targetIndex);

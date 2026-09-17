@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 
     // Open outfile; currently will overwrite out.wav
     WAVWriter wavWriter;
-    if (!wavWriter.open(outfileName, sampleRate)) {
+    if (!wavWriter.open(outfileName, sampleRate, 2)) {
         spdlog::error("Failed to create WAV file: {}", outfileName);
         return 3;
     }
@@ -97,8 +97,8 @@ int main(int argc, char** argv) {
     std::ranges::fill(buffer, 0.0f);
     SampleBuffer sampleBuf {
         .data = buffer,
-        .channels = 1,
-        .stride = 1
+        .channels = 2,
+        .stride = 2
     };
 
     auto start = std::chrono::steady_clock::now();

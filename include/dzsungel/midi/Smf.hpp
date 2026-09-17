@@ -24,7 +24,7 @@
 using namespace smf;
 
 namespace dzsungel::midi {
-    constexpr uint32_t kReadaheadBufferLen = 8192;
+    constexpr uint32_t kReadaheadBufferLen = 4096;
 
     struct ExtendedProgramState {
         uint8_t msb = 0;

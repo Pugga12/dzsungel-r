@@ -27,6 +27,7 @@ namespace dzsungel::io {
         struct Impl;
         std::unique_ptr<Impl> pImpl;
         bool open_ = false;
+        uint32_t channels_ = 1;
     public:
         bool open(const std::string& filename, float sampleRate, uint32_t channels = 1);
 
