@@ -35,6 +35,7 @@ int main(int argc, char** argv) {
     std::string outfileName = "out.wav";
     bool logVerbose = false;
     bool linearGainFlag = false;
+    bool monoFlag = false;
     float sampleRate = kDefaultSampleRate;
     auto* optGain = app.add_option("-g,--gain", masterGainDb, "Master gain in dB")->capture_default_str();
     app.add_option("InputFile", infileName, "Path to input .midi file")->required()->check(CLI::ExistingFile);
@@ -42,7 +43,9 @@ int main(int argc, char** argv) {
     app.add_option("-s,--sample-rate", sampleRate, "Output sample rate")->check(CLI::PositiveNumber)->capture_default_str();
     app.add_flag("-v,--verbose", logVerbose, "Enable verbose logging. Does not do much right now, but will later");
     app.add_flag("-l,--linear-gain", linearGainFlag, "Treat specified gain as linear. Requires you to input a gain level.")
-            ->needs(optGain);
+        ->needs(optGain);
+    app.add_flag("-m,--mono", monoFlag, "Mono mode (single audio channel)");
+            
     app.allow_windows_style_options();
 
     CLI11_PARSE(app, argc, argv);
@@ -97,8 +100,8 @@ int main(int argc, char** argv) {
     std::ranges::fill(buffer, 0.0f);
     SampleBuffer sampleBuf {
         .data = buffer,
-        .channels = 2,
-        .stride = 2
+        .channels = monoFlag ? 1u : 2u,
+        .stride = monoFlag ? 1u : 2u
     };
 
     auto start = std::chrono::steady_clock::now();

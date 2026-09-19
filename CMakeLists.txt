@@ -4,18 +4,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(dzsungel-r VERSION 0.1)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
-find_package(Boost REQUIRED)
-
+find_package(Boost CONFIG REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
+find_package(RtAudio CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 add_subdirectory(libs/midifile)
 add_subdirectory(libs/dr_wav)
-add_subdirectory(libs/CLI11)
-include(FetchContent)
-fetchcontent_declare(
-        spdlog
-        GIT_REPOSITORY https://github.com/gabime/spdlog.git
-        GIT_TAG v1.17.0
-)
-fetchcontent_makeavailable(spdlog)
 
 include_directories(${PROJECT_SOURCE_DIR}/include/dzsungel)
 
@@ -68,7 +62,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_definitions(dzsmf PRIVATE /Wall /Wextra /Wpedantic)
 endif()
 
-target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog Boost::headers CLI11::CLI11)
+target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog Boost::headers CLI11::CLI11 RtAudio::rtaudio)
 
 option(DZSUNGEL_BUILD_TESTS "Build the GoogleTest-based test suite" OFF)
 option(DBG_RV_LOG_CSV "Log RampingValue operations to csv file" OFF)
