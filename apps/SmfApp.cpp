@@ -27,13 +27,77 @@
 using namespace dzsungel::io;
 using namespace dzsungel::midi;
 
+void listOutputDevices(RtAudio &dac) { 
+    auto deviceIds = dac.getDeviceIds();
 
-static int runOffline(AudioEngine &eng, IOSmf &smfReader, std::string &outfileName, float sampleRate, bool monoFlag,
+    if (deviceIds.empty()) {
+        spdlog::error("No devices detected on this system.");
+        return;
+    }
+
+    std::vector<dz_uint> outputDeviceIds;
+    for (auto &d: deviceIds) {
+        auto dev = dac.getDeviceInfo(d);
+        if (dev.outputChannels > 0 && dev.nativeFormats & RTAUDIO_FLOAT32) {
+            outputDeviceIds.push_back(d);
+        }
+    }
+
+    if (outputDeviceIds.empty()) {
+        spdlog::error("No compatible output devices detected!");
+        spdlog::info("All devices: ");
+        for (auto &d: deviceIds) {
+            auto dev = dac.getDeviceInfo(d);
+            spdlog::info("    ({:03d}) {} in / {} ch out: {}", 
+                d, dev.inputChannels, dev.outputChannels, dev.name);
+        }
+
+        return;
+    }
+
+    dz_uint defaultId = dac.getDefaultOutputDevice();
+    bool hasDefault = (defaultId != 0 
+        && std::ranges::find(outputDeviceIds, defaultId) != outputDeviceIds.end());
+
+    spdlog::info("Available output devices: ");
+    for (auto &d : outputDeviceIds) {
+        auto dev = dac.getDeviceInfo(d);
+        spdlog::info("    ({:03d}) {} ch out: {} {}",
+            d, dev.outputChannels, dev.name, 
+            (hasDefault && d == defaultId) ? "(default)" : ""
+        );
+    }
+
+    if (!hasDefault) {
+        spdlog::warn("No default output device configured - you must specify one with --device");
+    }
+}
+
+bool loadMidiFile(const std::string& path, IOSmf& smfReader, float sampleRate) { 
+    std::ifstream file(path, std::ios::binary);
+
+    if (!file.is_open()) {
+        int errCode = errno;
+        spdlog::error("Failed to open input file '{}': {}", 
+            path, std::system_category().message(errCode));
+
+        return false;
+    }
+
+    if (!smfReader.load(file, sampleRate)) {
+        spdlog::error("Failed to parse MIDI file '{}'. Is it a valid smf file?", path);
+        return false;
+    }
+    
+    return true;
+}
+
+static bool offlineMain(AudioEngine &eng, IOSmf &smfReader, std::string &outfileName, float sampleRate, bool monoFlag,
                       float linearizedGain) {
     WAVWriter wavWriter;
     if (!wavWriter.open(outfileName, sampleRate, 2)) {
         spdlog::error("Failed to create WAV file: {}", outfileName);
-        return 3;
+        return false;
     }
 
     // initialize buffer
@@ -68,78 +132,91 @@ static int runOffline(AudioEngine &eng, IOSmf &smfReader, std::string &outfileNa
 
     spdlog::info("Done, took {} to process {}s of audio", dSec, lenToWrite);
     spdlog::info("Speedup: {}x", lenToWrite / dSec.count());
+
+    return true;
 }
 
-int main(int argc, char** argv) {
-    // setup logging and command parsing
-    CLI::App app{"Synthesizes notes from a .mid file into audio", "dzsmf"};
-    
+int main(int argc, char **argv) { 
+    CLI::App app{"Dzsungel - MIDI synthesizer", "dzsmf"}; 
+    app.set_version_flag("--version,--ver", "0.1.0");
+    app.fallthrough();
+
+    // Common options
     float masterGainDb = -6.0f;
-    std::string infileName;
-    std::string outfileName = "out.wav";
+    float sampleRate = kDefaultSampleRate;
     bool logVerbose = false;
     bool linearGainFlag = false;
     bool monoFlag = false;
-    float sampleRate = kDefaultSampleRate;
-    auto* optGain = app.add_option("-g,--gain", masterGainDb, "Master gain in dB")->capture_default_str();
-    app.add_option("InputFile", infileName, "Path to input .midi file")->required()->check(CLI::ExistingFile);
-    app.add_option("-o,--output", outfileName, "The name of the output file to write to.")->capture_default_str();
-    app.add_option("-s,--sample-rate", sampleRate, "Output sample rate")->check(CLI::PositiveNumber)->capture_default_str();
-    app.add_flag("-v,--verbose", logVerbose, "Enable verbose logging. Does not do much right now, but will later");
-    app.add_flag("-l,--linear-gain", linearGainFlag, "Treat specified gain as linear. Requires you to input a gain level.")
-        ->needs(optGain);
-    app.add_flag("-m,--mono", monoFlag, "Mono mode (single audio channel)");
-            
-    app.allow_windows_style_options();
+    std::string infileName;
 
+    // Input file
+    app.add_option("INFILE", infileName, "Input MIDI file")
+        ->required()
+        ->check(CLI::ExistingFile);
+
+    // Gain option
+    auto gainOpt = app.add_option("-g,--gain", masterGainDb, "Master gain in dB")->default_str("(default -6dB)");
+
+    // Sample rate 
+    app.add_option("-s,--sample-rate", sampleRate, "Output sample rate (Hz)")
+        ->check(CLI::PositiveNumber)
+        ->capture_default_str();
+
+    // Verbose logging flag
+    app.add_flag("-v,--verbose", logVerbose, "Enable debug logging");
+
+    // Linear gain flag
+    app.add_flag("-l,--linear-gain", linearGainFlag, "Interpret --gain as linear multiplier (not dB)")
+        ->needs(gainOpt);
+
+    // Mono flag 
+    app.add_flag("-m,--mono", monoFlag, "Output mono audio (single channel)");
+
+    // SUBCOMMAND: render (wav output)
+    auto renderCmd = app.add_subcommand("render", "Render MIDI to wav file (default mode)");
+    
+    std::string outfileName = "out.wav";
+    renderCmd->add_option("-o,--output", outfileName, "Output WAV filename")->capture_default_str();
+
+    // SUBCOMMAND: play
+    auto playCmd = app.add_subcommand("play", "Streams audio to an output device (experimental)");
+
+    std::optional<dz_uint> deviceIdOpt;
+    playCmd->add_option("-d,--device", deviceIdOpt, "Output device ID")->check(CLI::PositiveNumber);
+
+    bool listDevices = false;
+    playCmd->add_flag("-L,--list-devices", listDevices, "List available output devices and exit");
+
+    app.allow_windows_style_options();
+   
     CLI11_PARSE(app, argc, argv);
 
     if (logVerbose) {
         spdlog::set_level(spdlog::level::debug);
+        spdlog::debug("Debug logging on.");
     }
 
-    float linearizedGain = 0;
-    if (!linearGainFlag) {
-        linearizedGain = std::pow(10, masterGainDb * 0.05f);
-    } else {
-        //  gain is set and linearized, pass right through
-        linearizedGain = masterGainDb;
+    float linearizedGain = linearGainFlag ? masterGainDb : std::pow(10.0f, masterGainDb * 0.05f);
+
+    if (renderCmd->parsed()) {
+        AudioEngine eng(sampleRate);
+        IOSmf smfReader;
+
+        if (!loadMidiFile(infileName, smfReader, sampleRate)) {
+            return 1;
+        }
+
+        if (logVerbose) {
+            std::vector<uint32_t> ids(
+                smfReader.getPreloadIds().begin(), 
+                smfReader.getPreloadIds().end()
+            );
+
+            spdlog::debug("Preloaded programs: {:#x}", fmt::join(ids, ", "));
+        }
+
+        bool success = offlineMain(eng, smfReader, outfileName, sampleRate, monoFlag, linearizedGain);
+
+        return success ? 0 : 2;
     }
-
-    // Load input file
-    std::ifstream smfFilestream(infileName, std::ios::binary);
-    if (!smfFilestream.is_open()) {
-        int errCode = errno;
-        spdlog::error("Failed to open file: {}\n\tWhat happened: ({}) {}", infileName, errCode, std::system_category().message(errCode));
-        return 1;
-    }
-
-    // Parse input file
-    AudioEngine eng(sampleRate);
-    IOSmf smfReader;
-    if (!smfReader.load(smfFilestream, sampleRate)) {
-        spdlog::error("Failed to parse MIDI file: {}", infileName);
-        return 2;
-    }
-
-    // If verbose log level: output the programs preloaded in the midi file
-    if (logVerbose) {
-        std::vector<uint32_t> idVec(smfReader.getPreloadIds().begin(), smfReader.getPreloadIds().end());
-        spdlog::debug("Preloaded program IDs: {:#x}", fmt::join(idVec, ", "));
-    }
-
-    RtAudio endac;
-
-    unsigned defaultId = endac.getDefaultOutputDevice();
-    if (defaultId == 0) {
-        spdlog::error("No default device found! Specify via command line and try again");
-    }
-
-    spdlog::info("Found devices:");
-    for (auto &d: endac.getDeviceIds()) {
-        auto dev = endac.getDeviceInfo(d);
-        spdlog::info("{}({}) {}", d == defaultId ? "* " : "", d, dev.name);
-    }
-
-    return runOffline(eng, smfReader, outfileName, sampleRate, monoFlag, linearizedGain);
 }

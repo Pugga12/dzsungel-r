@@ -50,6 +50,8 @@ struct SampleBuffer {
     uint8_t stride = 1;
 };
 
+using dz_uint = unsigned int;
+
 // assert guards for CC values
 static_assert(static_cast<uint8_t>(MidiMsgType::CCBankMSB) == 0);
 static_assert(static_cast<uint8_t>(MidiMsgType::CCVolume) == 7);
