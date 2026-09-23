@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 project(dzsungel-r VERSION 0.1)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
@@ -44,7 +45,7 @@ set (HEADERS
     include/dzsungel/Types.hpp
 )
 
-add_library(dzsungel-core STATIC ${SOURCES} ${HEADERS})
+add_library(dzsungel-core SHARED ${SOURCES} ${HEADERS})
 target_include_directories(dzsungel-core PUBLIC ${PROJECT_SOURCE_DIR}/include/dzsungel)
 target_link_libraries(dzsungel-core PRIVATE Boost::headers midifile dr_wav)
 

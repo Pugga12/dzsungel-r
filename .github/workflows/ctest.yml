@@ -42,33 +42,16 @@ jobs:
       - name: Add NuGet sources
         shell: bash
         run: |
-        mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
-          sources add \
-          -Source "${{ env.FEED_URL }}" \
-          -StorePasswordInClearText \
-          -Name GitHubPackages \
-          -UserName "${{ env.USERNAME }}" \
-          -Password "${{ secrets.GITHUB_TOKEN }}"
-        mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
-          setapikey "${{ secrets.GITHUB_TOKEN }}" \
-          -Source "${{ env.FEED_URL }}"
-
-      # Cache FetchContent dependencies (like Google Test) to speed up CI runs
-      - name: Cache FetchContent
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/build/_deps
-          key: ${{ runner.os }}-fetchcontent-${{ hashFiles('**/CMakeLists.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-fetchcontent-
-
-      - name: Configure CMake
-        run: >
-          cmake -B build 
-          -DCMAKE_BUILD_TYPE=Debug 
-          -DDZSUNGEL_BUILD_TESTS=ON
-          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
+          mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+            sources add \
+            -Source "${{ env.FEED_URL }}" \
+            -StorePasswordInClearText \
+            -Name GitHubPackages \
+            -UserName "${{ env.USERNAME }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+            setapikey "${{ secrets.GITHUB_TOKEN }}" \
+            -Source "${{ env.FEED_URL }}"
 
       - name: Build Project & Tests
         run: cmake --build build --config Debug -j $(nproc)

@@ -20,16 +20,60 @@
 #include "midi/Smf.hpp"
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/chrono.h"
+#include "spdlog/fmt/ranges.h"
 #include "CLI/CLI.hpp"
+#include "RtAudio.h"
 
 using namespace dzsungel::io;
 using namespace dzsungel::midi;
+
+
+static int runOffline(AudioEngine &eng, IOSmf &smfReader, std::string &outfileName, float sampleRate, bool monoFlag,
+                      float linearizedGain) {
+    WAVWriter wavWriter;
+    if (!wavWriter.open(outfileName, sampleRate, 2)) {
+        spdlog::error("Failed to create WAV file: {}", outfileName);
+        return 3;
+    }
+
+    // initialize buffer
+    size_t framesWritten = 0;
+    std::vector<float> buffer(8192);
+    std::ranges::fill(buffer, 0.0f);
+    SampleBuffer sampleBuf{.data = buffer, .channels = monoFlag ? 1u : 2u, .stride = monoFlag ? 1u : 2u};
+
+    auto start = std::chrono::steady_clock::now();
+    while (true) {
+        // halt if all messages have been queued by the reader and if all voices are inactive
+        if (smfReader.isPlaybackComplete() && eng.getActiveVoiceCount() == 0) {
+            break;
+        }
+
+        smfReader.pushToEngine(eng);
+        eng.renderBlock(sampleBuf);
+
+        for (auto &v: buffer) {
+            v *= linearizedGain;
+        }
+        framesWritten += wavWriter.write(sampleBuf);
+
+        std::ranges::fill(buffer, 0.0f);
+    }
+
+    // calculate time taken at end of loop
+    auto end = std::chrono::steady_clock::now();
+    auto finishedIn = end - start;
+    std::chrono::duration<float> dSec = finishedIn;
+    const float lenToWrite = static_cast<float>(framesWritten) / sampleRate;
+
+    spdlog::info("Done, took {} to process {}s of audio", dSec, lenToWrite);
+    spdlog::info("Speedup: {}x", lenToWrite / dSec.count());
+}
 
 int main(int argc, char** argv) {
     // setup logging and command parsing
     CLI::App app{"Synthesizes notes from a .mid file into audio", "dzsmf"};
     
-
     float masterGainDb = -6.0f;
     std::string infileName;
     std::string outfileName = "out.wav";
@@ -80,54 +124,22 @@ int main(int argc, char** argv) {
 
     // If verbose log level: output the programs preloaded in the midi file
     if (logVerbose) {
-        std::string numbers;
-        for (const auto& pNo : smfReader.getPreloadIds()) {
-            numbers.append(std::to_string(pNo) + ", ");
-        }
-        spdlog::debug("Preloaded program IDs: {}", numbers);
+        std::vector<uint32_t> idVec(smfReader.getPreloadIds().begin(), smfReader.getPreloadIds().end());
+        spdlog::debug("Preloaded program IDs: {:#x}", fmt::join(idVec, ", "));
     }
 
-    // Open outfile; currently will overwrite out.wav
-    WAVWriter wavWriter;
-    if (!wavWriter.open(outfileName, sampleRate, 2)) {
-        spdlog::error("Failed to create WAV file: {}", outfileName);
-        return 3;
+    RtAudio endac;
+
+    unsigned defaultId = endac.getDefaultOutputDevice();
+    if (defaultId == 0) {
+        spdlog::error("No default device found! Specify via command line and try again");
     }
 
-    // initialize buffer
-    size_t framesWritten = 0;
-    std::vector<float> buffer(8192);
-    std::ranges::fill(buffer, 0.0f);
-    SampleBuffer sampleBuf {
-        .data = buffer,
-        .channels = monoFlag ? 1u : 2u,
-        .stride = monoFlag ? 1u : 2u
-    };
-
-    auto start = std::chrono::steady_clock::now();
-    while (true) {
-        // halt if all messages have been queued by the reader and if all voices are inactive
-        if (smfReader.isPlaybackComplete() && eng.getActiveVoiceCount() == 0) {
-            break;
-        }
-
-        smfReader.pushToEngine(eng);
-        eng.renderBlock(sampleBuf);
-
-        for (auto &v: buffer) {
-            v *= linearizedGain;
-        }
-        framesWritten += wavWriter.write(sampleBuf);
-
-        std::ranges::fill(buffer, 0.0f);
+    spdlog::info("Found devices:");
+    for (auto &d: endac.getDeviceIds()) {
+        auto dev = endac.getDeviceInfo(d);
+        spdlog::info("{}({}) {}", d == defaultId ? "* " : "", d, dev.name);
     }
 
-    // calculate time taken at end of loop
-    auto end = std::chrono::steady_clock::now();
-    auto finishedIn = end - start;
-    std::chrono::duration<float> dSec = finishedIn;
-    const float lenToWrite = static_cast<float>(framesWritten) / sampleRate;
-
-    spdlog::info("Done, took {} to process {} s of audio", dSec,  lenToWrite);
-    spdlog::info("Speedup: {}x", lenToWrite / dSec.count());
+    return runOffline(eng, smfReader, outfileName, sampleRate, monoFlag, linearizedGain);
 }
