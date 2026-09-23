@@ -1,10 +1,20 @@
 name: C++ CI & Google Test
 
+permissions:
+  packages: write
+
 on:
   push:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
+    
+env: 
+  USERNAME: Pugga12
+  VCPKG_ROOT: ${{github.workspace}}/vcpkg
+  VCPKG_EXE: ${{ github.workspace }}/vcpkg/vcpkg
+  FEED_URL: https://nuget.pkg.github.com/<OWNER>/index.json
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/Pugga12/index.json,readwrite"
 
 jobs:
   build-and-test:
@@ -15,6 +25,33 @@ jobs:
         uses: actions/checkout@v7
         with:
           submodules: true
+          
+      - name: Checkout vcpkg
+        uses: actions/checkout@v7
+        with:
+          repository: microsoft/vcpkg
+          path: vcpkg
+      
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: ${{ github.workspace }}/vcpkg/bootstrap-vcpkg.sh
+      
+      - name: Install mono
+        run: sudo apt install mono-complete
+      
+      - name: Add NuGet sources
+        shell: bash
+        run: |
+        mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+          sources add \
+          -Source "${{ env.FEED_URL }}" \
+          -StorePasswordInClearText \
+          -Name GitHubPackages \
+          -UserName "${{ env.USERNAME }}" \
+          -Password "${{ secrets.GITHUB_TOKEN }}"
+        mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -Source "${{ env.FEED_URL }}"
 
       # Cache FetchContent dependencies (like Google Test) to speed up CI runs
       - name: Cache FetchContent
@@ -26,16 +63,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-fetchcontent-
 
-      - name: Install boost
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libboost-all-dev
-
       - name: Configure CMake
         run: >
           cmake -B build 
           -DCMAKE_BUILD_TYPE=Debug 
           -DDZSUNGEL_BUILD_TESTS=ON
+          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
 
       - name: Build Project & Tests
         run: cmake --build build --config Debug -j $(nproc)
