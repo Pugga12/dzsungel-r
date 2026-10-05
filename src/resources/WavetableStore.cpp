@@ -51,6 +51,6 @@ namespace dzsungel::resources {
         if (it == tables_.end()) {
             return std::nullopt;
         }
-        return std::make_optional(it->second.get());
+        return it->second.get();
     }
 }

@@ -139,9 +139,9 @@ namespace dzsungel::midi {
         loaded_ = false;
     }
 
-    void IOSmf::pushToEngine(AudioEngine &e, size_t readaheadBuffer) {
+    void IOSmf::pushToEngine(AudioEngine &e) {
         size_t currentTc = e.getCurrentTimecode();
-        const size_t bufferEnd = currentTc + readaheadBuffer;
+        const size_t bufferEnd = currentTc + readaheadLen_;
 
         while (eventsQueued_ < numEvents_) {
             const auto& ev = events_[eventsQueued_];

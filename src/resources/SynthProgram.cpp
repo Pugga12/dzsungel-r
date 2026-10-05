@@ -33,9 +33,7 @@ namespace dzsungel::resources {
             PhaseOsc carrier = WavetableOsc(carrierTable.value(), sampleRate);
             PhaseOsc modulator = WavetableOsc(modTable.value(), sampleRate);
 
-            return std::make_optional(
-                StandardPmAlgorithm(carrier, modulator, p, sampleRate)
-            );
+            return StandardPmAlgorithm(carrier, modulator, p, sampleRate);
         } else {
             const auto& params = std::get<FeedbackParams>(p.algorithmParams);
 
@@ -44,9 +42,7 @@ namespace dzsungel::resources {
 
             PhaseOsc carrier = WavetableOsc(carrierTable.value(), sampleRate);
 
-            return std::make_optional(
-                FeedbackAlgorithm(carrier, p, sampleRate)
-            );
+            return FeedbackAlgorithm(carrier, p, sampleRate);
         }
     }
 }
