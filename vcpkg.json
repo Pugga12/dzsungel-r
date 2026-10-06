@@ -3,6 +3,7 @@
     "boost-lockfree",
     "cli11",
     "rtaudio",
-    "spdlog"
+    "spdlog",
+    "magic-enum"
   ]
 }

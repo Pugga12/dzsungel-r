@@ -9,6 +9,7 @@ find_package(Boost CONFIG REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
 find_package(RtAudio CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
 add_subdirectory(libs/midifile)
 add_subdirectory(libs/dr_wav)
 
@@ -63,7 +64,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_definitions(dzsmf PRIVATE /Wall /Wextra /Wpedantic)
 endif()
 
-target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog Boost::headers CLI11::CLI11 RtAudio::rtaudio)
+target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog Boost::headers CLI11::CLI11 RtAudio::rtaudio magic_enum::magic_enum)
 
 option(DZSUNGEL_BUILD_TESTS "Build the GoogleTest-based test suite" OFF)
 option(DBG_RV_LOG_CSV "Log RampingValue operations to csv file" OFF)

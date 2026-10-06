@@ -23,11 +23,22 @@
 #include "spdlog/fmt/ranges.h"
 #include "CLI/CLI.hpp"
 #include "RtAudio.h"
+#include "magic_enum/magic_enum.hpp"
+#include "magic_enum/magic_enum_format.hpp"
 
 using namespace dzsungel::io;
 using namespace dzsungel::midi;
 
-void listOutputDevices(RtAudio &dac) { 
+static bool g_monoFlag = false;
+static bool g_logVerbose = false;
+static float g_linearizedGain = 0.0f;
+
+static struct AudioStatus {
+    std::atomic_bool hasError{false};
+    std::atomic<RtAudioErrorType> type{RTAUDIO_NO_ERROR};
+} g_status;
+
+static void listOutputDevices(RtAudio &dac) { 
     std::vector<uint> deviceIds = dac.getDeviceIds();
 
     if (deviceIds.empty()) {
@@ -73,7 +84,7 @@ void listOutputDevices(RtAudio &dac) {
     }
 }
 
-std::optional<uint> resolveDeviceId(RtAudio& dac, std::optional<uint> deviceIdOpt) {
+static std::optional<uint> resolveDeviceId(RtAudio& dac, std::optional<uint> deviceIdOpt) {
     uint defaultId = dac.getDefaultOutputDevice();
     std::vector<uint> deviceIds = dac.getDeviceIds();
 
@@ -104,9 +115,10 @@ std::optional<uint> resolveDeviceId(RtAudio& dac, std::optional<uint> deviceIdOp
     }
 
     spdlog::debug("Selected output device: {} ({})", requestedId, dev.name);
+    return requestedId;
 }
 
-bool loadMidiFile(const std::string& path, IOSmf& smfReader, float sampleRate) { 
+static bool loadMidiFile(const std::string& path, IOSmf& smfReader, float sampleRate) { 
     std::ifstream file(path, std::ios::binary);
 
     if (!file.is_open()) {
@@ -125,10 +137,46 @@ bool loadMidiFile(const std::string& path, IOSmf& smfReader, float sampleRate) {
     return true;
 }
 
-bool offlineMain(std::string &infileName, std::string &outfileName, float sampleRate, float linearizedGain) {
-    extern bool monoFlag;
-    extern bool logVerbose;
+static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, double streamTime, RtAudioStreamStatus status,
+                    void *userData) {
+    auto buffer = static_cast<float *>(outputBuffer);
+    auto eng = static_cast<AudioEngine *>(userData);
 
+    SampleBuffer buf{.data = std::span<float>(buffer, nFrames * 2), .channels = g_monoFlag ? 1u : 2u, .stride = 2u};
+    std::ranges::fill(buf.data, 0.0f);
+    eng->renderBlock(buf);
+
+    if (g_monoFlag) {
+        for (uint i = 0; i + 1 < nFrames * 2; i += 2) {
+            buffer[i] *= g_linearizedGain;
+            buffer[i + 1] = buffer[i];
+        }
+    } else {
+        for (uint i = 0; i < nFrames * 2; ++i) {
+            buffer[i] *= g_linearizedGain;
+        }
+    }
+
+    return 0;
+}
+
+void xErrorCallback(RtAudioErrorType type, const std::string &errorText) { 
+#ifdef WIN32
+    // likely disconnect in my experience on windows. usually returns "RtApiWasapi::wasapiThread: Unable to retrieve render buffer size"
+    if (type == RTAUDIO_DRIVER_ERROR) {
+        errorText.rfind("render buffer size");
+        // re-emit as disconnect
+        g_status.type.store(RTAUDIO_DEVICE_DISCONNECT, std::memory_order_release);
+        g_status.hasError.store(true, std::memory_order_release);
+        return;
+    }
+#endif
+
+    g_status.type.store(type, std::memory_order_release);
+    g_status.hasError.store(true, std::memory_order_release);
+}
+
+static bool offlineMain(std::string &infileName, std::string &outfileName, float sampleRate) {
     AudioEngine eng(sampleRate);
     IOSmf smfReader(4096);
 
@@ -136,7 +184,7 @@ bool offlineMain(std::string &infileName, std::string &outfileName, float sample
         return false;
     }
 
-    if (logVerbose) {
+    if (g_logVerbose) {
         std::vector<uint32_t> ids(smfReader.getPreloadIds().begin(), smfReader.getPreloadIds().end());
         spdlog::debug("Preloaded programs: {:#x}", fmt::join(ids, ", "));
     }
@@ -151,7 +199,7 @@ bool offlineMain(std::string &infileName, std::string &outfileName, float sample
     size_t framesWritten = 0;
     std::vector<float> buffer(8192);
     std::ranges::fill(buffer, 0.0f);
-    SampleBuffer sampleBuf{.data = buffer, .channels = monoFlag ? 1u : 2u, .stride = monoFlag ? 1u : 2u};
+    SampleBuffer sampleBuf{.data = buffer, .channels = g_monoFlag ? 1u : 2u, .stride = g_monoFlag ? 1u : 2u};
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
@@ -164,7 +212,7 @@ bool offlineMain(std::string &infileName, std::string &outfileName, float sample
         eng.renderBlock(sampleBuf);
 
         for (auto &v: buffer) {
-            v *= linearizedGain;
+            v *= g_linearizedGain;
         }
         framesWritten += wavWriter.write(sampleBuf);
 
@@ -183,35 +231,7 @@ bool offlineMain(std::string &infileName, std::string &outfileName, float sample
     return true;
 }
 
-int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, double streamTime, RtAudioStreamStatus status,
-                    void *userData) {
-    extern bool monoFlag;
-    extern float linearizedGain;
-    auto buffer = static_cast<float *>(outputBuffer);
-    auto eng = static_cast<AudioEngine *>(userData);
-
-    SampleBuffer buf{.data = std::span<float>(buffer, nFrames * 2), .channels = monoFlag ? 1u : 2u, .stride = 2u};
-    std::ranges::fill(buf.data, 0.0f);
-    eng->renderBlock(buf);
-
-    if (monoFlag) {
-        for (uint i = 0; i + 1 < nFrames * 2; i += 2) {
-            buffer[i] *= linearizedGain;
-            buffer[i + 1] = buffer[i];
-        }
-    } else {
-        for (uint i = 0; i < nFrames * 2; ++i) {
-            buffer[i] *= linearizedGain;
-        }
-    }
-
-    return 0;
-}
-
-bool liveMain(RtAudio& dac, std::string& infileName,uint devId, float sampleRate, float linearizedGain) {
-    extern bool monoFlag;
-    extern bool logVerbose;
-
+static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sampleRate) {
     AudioEngine eng(sampleRate);
     IOSmf smfReader;
 
@@ -219,7 +239,7 @@ bool liveMain(RtAudio& dac, std::string& infileName,uint devId, float sampleRate
         return false;
     }
 
-    if (logVerbose) {
+    if (g_logVerbose) {
         std::vector<uint32_t> ids(smfReader.getPreloadIds().begin(), smfReader.getPreloadIds().end());
         spdlog::debug("Preloaded programs: {:#x}", fmt::join(ids, ", "));
     }
@@ -251,6 +271,25 @@ bool liveMain(RtAudio& dac, std::string& infileName,uint devId, float sampleRate
         }
 
         smfReader.pushToEngine(eng);
+
+        if (g_status.hasError.load(std::memory_order_acquire)) {
+            RtAudioErrorType t = g_status.type.load(std::memory_order_acquire);
+
+            if (t == RTAUDIO_DEVICE_DISCONNECT) {
+                spdlog::critical("Output device disconnected, halting...");
+                break;
+            } else if (t == RTAUDIO_MEMORY_ERROR ||
+                t == RTAUDIO_DRIVER_ERROR || 
+                t == RTAUDIO_SYSTEM_ERROR || 
+                t == RTAUDIO_THREAD_ERROR) {
+                spdlog::critical("RtAudio: {}", t);
+                break;
+            }
+
+            g_status.hasError.store(false, std::memory_order_release);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     dac.stopStream();
@@ -258,10 +297,6 @@ bool liveMain(RtAudio& dac, std::string& infileName,uint devId, float sampleRate
 
     return true;
 };
-
-bool monoFlag = false;
-bool logVerbose = false;
-float linearizedGain = 0.0f;
 
 int main(int argc, char **argv) { 
     CLI::App app{"Dzsungel - MIDI synthesizer", "dzsmf"}; 
@@ -287,14 +322,14 @@ int main(int argc, char **argv) {
         ->capture_default_str();
 
     // Verbose logging flag
-    app.add_flag("-v,--verbose", logVerbose, "Enable debug logging");
+    app.add_flag("-v,--verbose", g_logVerbose, "Enable debug logging");
 
     // Linear gain flag
     app.add_flag("-l,--linear-gain", linearGainFlag, "Interpret --gain as linear multiplier (not dB)")
         ->needs(gainOpt);
 
     // Mono flag 
-    app.add_flag("-m,--mono", monoFlag, "Output mono audio (single channel)");
+    app.add_flag("-m,--mono", g_monoFlag, "Output mono audio (single channel)");
 
     // SUBCOMMAND: render (wav output)
     auto renderCmd = app.add_subcommand("render", "Render MIDI to wav file (default mode)");
@@ -315,18 +350,18 @@ int main(int argc, char **argv) {
    
     CLI11_PARSE(app, argc, argv);
 
-    if (logVerbose) {
+    if (g_logVerbose) {
         spdlog::set_level(spdlog::level::debug);
         spdlog::debug("Debug logging on.");
     }
 
-    linearizedGain = linearGainFlag ? masterGainDb : std::pow(10.0f, masterGainDb * 0.05f);
+    g_linearizedGain = linearGainFlag ? masterGainDb : std::pow(10.0f, masterGainDb * 0.05f);
 
     if (renderCmd->parsed()) {
-        bool success = offlineMain(infileName, outfileName, sampleRate, linearizedGain);
+        bool success = offlineMain(infileName, outfileName, sampleRate);
         return success ? 0 : 2;
     } else if (playCmd->parsed()) {
-        RtAudio dac;
+        RtAudio dac(RtAudio::Api::UNSPECIFIED, xErrorCallback);
 
         if (listDevices) {
             listOutputDevices(dac);
@@ -338,7 +373,7 @@ int main(int argc, char **argv) {
             return 3;
         }
         
-        bool success = liveMain(dac, infileName, devId.value(), sampleRate, linearizedGain);
+        bool success = liveMain(dac, infileName, devId.value(), sampleRate);
         return success ? 0 : 3;
     }
 }
