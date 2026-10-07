@@ -2,8 +2,18 @@
   "dependencies": [
     "boost-lockfree",
     "cli11",
-    "rtaudio",
-    "spdlog",
-    "magic-enum"
+    "magic-enum",
+    {
+      "name": "rtaudio",
+      "platform": "linux",
+      "features": [
+        "pulse"
+      ]
+    },
+    {
+      "name": "rtaudio",
+      "platform": "!linux"
+    }, 
+    "spdlog"
   ]
 }

@@ -142,7 +142,11 @@ static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, dou
     auto buffer = static_cast<float *>(outputBuffer);
     auto eng = static_cast<AudioEngine *>(userData);
 
-    SampleBuffer buf{.data = std::span<float>(buffer, nFrames * 2), .channels = g_monoFlag ? 1u : 2u, .stride = 2u};
+    SampleBuffer buf{
+	    .data = std::span<float>(buffer, nFrames * 2), 
+	    .channels = static_cast<uint8_t>(g_monoFlag ? 1 : 2), 
+	    .stride = 2
+    };
     std::ranges::fill(buf.data, 0.0f);
     eng->renderBlock(buf);
 
@@ -199,7 +203,7 @@ static bool offlineMain(std::string &infileName, std::string &outfileName, float
     size_t framesWritten = 0;
     std::vector<float> buffer(8192);
     std::ranges::fill(buffer, 0.0f);
-    SampleBuffer sampleBuf{.data = buffer, .channels = g_monoFlag ? 1u : 2u, .stride = g_monoFlag ? 1u : 2u};
+    SampleBuffer sampleBuf{.data = buffer, .channels = static_cast<uint8_t>(g_monoFlag ? 1 : 2), .stride = static_cast<uint8_t>(g_monoFlag ? 1 : 2)};
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
@@ -300,8 +304,9 @@ static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sa
 
 int main(int argc, char **argv) { 
     CLI::App app{"Dzsungel - MIDI synthesizer", "dzsmf"}; 
-
+#ifdef WIN32
     app.allow_windows_style_options();
+#endif
     app.require_subcommand(1);
     app.set_version_flag("--version,--ver", "0.1.0");
     app.set_help_all_flag("-H,--help-all", "All options");

@@ -22,3 +22,6 @@ set(MIDIFILE_INCLUDES
 add_library(midifile STATIC ${MIDIFILE_SOURCES})
 
 target_include_directories(midifile PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang") 
+	target_compile_options(midifile PUBLIC -fPIC)
+endif()
