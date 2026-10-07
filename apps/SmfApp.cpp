@@ -32,6 +32,7 @@ using namespace dzsungel::midi;
 static bool g_monoFlag = false;
 static bool g_logVerbose = false;
 static float g_linearizedGain = 0.0f;
+static RtAudio::Api g_soundServer = RtAudio::Api::UNSPECIFIED;
 
 static struct AudioStatus {
     std::atomic_bool hasError{false};
@@ -162,13 +163,14 @@ static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, dou
 
 void xErrorCallback(RtAudioErrorType type, const std::string &errorText) { 
 #ifdef WIN32
-    // likely disconnect in my experience on windows. usually returns "RtApiWasapi::wasapiThread: Unable to retrieve render buffer size"
-    if (type == RTAUDIO_DRIVER_ERROR) {
-        errorText.rfind("render buffer size");
+    // likely disconnect in my experience on WASAPI. usually returns "RtApiWasapi::wasapiThread: Unable to retrieve render buffer size"
+    if (g_soundServer == RtAudio::Api::WINDOWS_WASAPI && type == RTAUDIO_DRIVER_ERROR) {
+        if (errorText.rfind("render buffer size") != std::string::npos) {
         // re-emit as disconnect
         g_status.type.store(RTAUDIO_DEVICE_DISCONNECT, std::memory_order_release);
         g_status.hasError.store(true, std::memory_order_release);
         return;
+    }
     }
 #endif
 
@@ -363,13 +365,19 @@ int main(int argc, char **argv) {
     } else if (playCmd->parsed()) {
         RtAudio dac(RtAudio::Api::UNSPECIFIED, xErrorCallback);
 
+        g_soundServer = dac.getCurrentApi();
+        if (g_soundServer == RtAudio::Api::RTAUDIO_DUMMY) {
+            spdlog::error("No RtAudio API was built for this system. Check your vcpkg.json, this shouldn't be possible.");
+            return 3;
+        }
+
         if (listDevices) {
             listOutputDevices(dac);
             return 0;
         }
 
         std::optional<uint> devId = resolveDeviceId(dac, deviceIdOpt);
-        if (!devId.value()) {
+        if (!devId.has_value()) {
             return 3;
         }
         
