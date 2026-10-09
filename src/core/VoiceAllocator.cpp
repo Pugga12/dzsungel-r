@@ -23,17 +23,17 @@
 #include <optional>
 
 namespace dzsungel::core {
-    inline size_t calculateFlatIdx(uint8_t channel, uint8_t pitch) {
+    static uint32_t calculateFlatIdx(uint32_t channel, uint32_t pitch) {
         return (channel * 128) + pitch;
     }
 
-    std::pair<int, VoiceAllocStatus> VoiceAllocator::findVictim(bool channelScoped, uint8_t channel) const {
-        int bestReleasing = -1;
-        int bestActive = -1;
+    std::pair<uint32_t, VoiceAllocStatus> VoiceAllocator::findVictim(bool channelScoped, uint32_t channel) const {
+        uint32_t bestReleasing = -1;
+        uint32_t bestActive = -1;
         uint32_t oldestReleasingTime = std::numeric_limits<uint32_t>::max();
         uint32_t oldestActiveTime = std::numeric_limits<uint32_t>::max();
 
-        for (uint8_t i = 0; i < kMaxVoices; ++i) {
+        for (uint32_t i = 0; i < kMaxVoices; ++i) {
             if (channelScoped && !channelVoices_[channel].test(i)) continue;
 
             if (const auto &v = voices_[i];
@@ -52,7 +52,7 @@ namespace dzsungel::core {
         return {-1, VoiceAllocStatus::FRESH};
     }
 
-    void VoiceAllocator::bind(uint8_t id, uint8_t channel, uint8_t pitch, uint32_t triggeredAt) {
+    void VoiceAllocator::bind(uint32_t id, uint32_t channel, uint32_t pitch, uint32_t triggeredAt) {
         auto& v = voices_[id];
         v.status = VoiceSlot::Status::Active;
         v.channel = channel;
@@ -63,7 +63,7 @@ namespace dzsungel::core {
         noteToVoice_[calculateFlatIdx(channel, pitch)] = id;
     }
 
-    void VoiceAllocator::unbind(uint8_t id) {
+    void VoiceAllocator::unbind(uint32_t id) {
         const auto& oldVoice = voices_[id];
 
         if (const size_t oldFlatIdx = calculateFlatIdx(oldVoice.channel, oldVoice.pitch);
@@ -74,17 +74,16 @@ namespace dzsungel::core {
         channelVoices_[oldVoice.channel].reset(id);
     }
 
-    VoiceAllocResult VoiceAllocator::allocate(uint8_t channel, uint8_t pitch, uint32_t sampleTime) {
+    VoiceAllocResult VoiceAllocator::allocate(uint32_t channel, uint32_t pitch, uint32_t sampleTime) {
         const size_t flatIdx = calculateFlatIdx(channel, pitch);
 
-        if (const int8_t existing = noteToVoice_[flatIdx]; existing >= 0) {
-            const auto voiceId = static_cast<uint8_t>(existing);
-            voices_[voiceId].triggeredAtSample = sampleTime;
-            voices_[voiceId].status = VoiceSlot::Status::Active;
-            return {VoiceAllocStatus::DUPLICATE, voiceId};
+        if (const uint32_t existing = noteToVoice_[flatIdx]; existing <= kDuplicateNotes) {
+            voices_[existing].triggeredAtSample = sampleTime;
+            voices_[existing].status = VoiceSlot::Status::Active;
+            return {VoiceAllocStatus::DUPLICATE, existing};
         }
 
-        for (uint8_t i = 0; i < kMaxVoices; ++i) {
+        for (uint32_t i = 0; i < kMaxVoices; ++i) {
             if (voices_[i].status == VoiceSlot::Status::Free) {
                 bind(i, channel, pitch, sampleTime);
                 incrementActiveCount();
@@ -99,16 +98,15 @@ namespace dzsungel::core {
 
         assert(victim >= 0 && victim < kMaxVoices);
 
-        const auto finalId = static_cast<uint8_t>(victim);
-        unbind(finalId);
-        bind(finalId, channel, pitch, sampleTime);
+        unbind(victim);
+        bind(victim, channel, pitch, sampleTime);
 
-        return {status, finalId};
+        return {status, victim};
     }
 
-    int8_t VoiceAllocator::release(uint8_t channel, uint8_t pitch) {
+    uint32_t VoiceAllocator::release(uint32_t channel, uint32_t pitch) {
         const size_t flatIdx = calculateFlatIdx(channel, pitch);
-        const int8_t boundId = noteToVoice_[flatIdx];
+        const uint32_t boundId = noteToVoice_[flatIdx];
 
         if (boundId == kNotBound) {
             return kNotBound;
@@ -120,10 +118,10 @@ namespace dzsungel::core {
         return boundId;
     }
 
-    void VoiceAllocator::notifyIdle(uint8_t voiceId) {
+    void VoiceAllocator::notifyIdle(uint32_t voiceId) {
         auto& v = voices_[voiceId];
 
-        if (const size_t flatIdx = calculateFlatIdx(v.channel, v.pitch); noteToVoice_[flatIdx] == voiceId) {
+        if (const uint32_t flatIdx = calculateFlatIdx(v.channel, v.pitch); noteToVoice_[flatIdx] == voiceId) {
             noteToVoice_[flatIdx] = kNotBound;
         }
 

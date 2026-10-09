@@ -22,10 +22,10 @@ concept Numeric = std::is_arithmetic_v<T>;
 
 template<Numeric T>
 class RampingValue {
-    T base_;
-    T current_;
-    T target_;
-    T increment_;
+    T base_{};
+    T current_{};
+    T target_{};
+    T increment_{};
     uint32_t stepsBase_ = 0;
     uint32_t stepsRemaining_ = 0;
 public:

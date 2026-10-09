@@ -50,6 +50,7 @@ struct SampleBuffer {
     uint8_t stride = 1;
 };
 
+// for use with RtAudio (platform dependent)
 using uint = unsigned int;
 
 // assert guards for CC values

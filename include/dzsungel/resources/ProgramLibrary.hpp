@@ -26,20 +26,20 @@ namespace dzsungel::resources {
         std::unordered_map<uint32_t, Program> store_;
         Program defaultEntry_ = kDefaultProgram;
     public:
-        [[nodiscard]] std::optional<const Program*> find(uint32_t packedId, bool useDefaultOnFail = true) {
+        [[nodiscard]] std::optional<Program> find(uint32_t packedId, bool useDefaultOnFail = true) {
             const auto it = store_.find(packedId);
 
             if (it == store_.end()) {
                 if (useDefaultOnFail) {
-                    return std::make_optional(&defaultEntry_);
+                    return defaultEntry_;
                 }
                 return std::nullopt;
             }
 
-            return std::make_optional(&it->second);
+            return it->second;
         }
 
-        [[nodiscard]] std::optional<const Program*> find(uint8_t msb, uint8_t lsb, uint8_t program, bool useDefaultOnFail = true) {
+        [[nodiscard]] std::optional<Program> find(uint8_t msb, uint8_t lsb, uint8_t program, bool useDefaultOnFail = true) {
             return find(packProgramId(msb, lsb, program), useDefaultOnFail);
         }
 

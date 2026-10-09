@@ -35,7 +35,7 @@ namespace dzsungel::core {
         ChannelStateStore csiStore_;
         WavetableStore wavetableStore_;
         VoiceAllocator allocator_;
-        std::array<Voice, 16> voices_;
+        std::array<Voice, kMaxVoices> voices_;
         ProgramLibrary patches_;
         float sampleRate_;
         bool usingChronologicalQueuer_ = true;

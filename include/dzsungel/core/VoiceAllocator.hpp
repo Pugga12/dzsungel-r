@@ -29,18 +29,18 @@ namespace dzsungel::core {
 
     struct VoiceAllocResult {
         VoiceAllocStatus status;
-        uint8_t voice;
+        uint32_t voice;
     };
 
     class VoiceAllocator {
     public:
-        static constexpr int8_t kNotBound = -1;
-        static constexpr int8_t kDuplicateNotes = -2;
-        static constexpr size_t kNumNotes = 128;
+        static constexpr uint32_t kNotBound = ~0u;
+        static constexpr uint32_t kDuplicateNotes = ~0u - 1;
+        static constexpr uint32_t kNumNotes = 128;
 
-        VoiceAllocResult allocate(uint8_t channel, uint8_t pitch, uint32_t sampleTime);
-        int8_t release(uint8_t channel, uint8_t pitch);
-        void notifyIdle(uint8_t voiceId);
+        VoiceAllocResult allocate(uint32_t channel, uint32_t pitch, uint32_t sampleTime);
+        uint32_t release(uint32_t channel, uint32_t pitch);
+        void notifyIdle(uint32_t voiceId);
         [[nodiscard]] size_t getActiveVoiceCount() const {
             return activeVoices_.load(std::memory_order_acquire);
         }
@@ -57,16 +57,16 @@ namespace dzsungel::core {
         };
 
         std::array<VoiceSlot, kMaxVoices> voices_;
-        std::array<int8_t, kNumChannels * kNumNotes> noteToVoice_{};
+        std::array<uint32_t, kNumChannels * kNumNotes> noteToVoice_{};
         std::array<std::bitset<kMaxVoices>, kNumChannels> channelVoices_;
 
         // this value will be checked by the main loop at the end of the song to determine whether we should halt,
         // so it must be thread safe
         std::atomic<size_t> activeVoices_ = 0;
 
-        void bind(uint8_t id, uint8_t channel, uint8_t pitch, uint32_t triggeredAt);
-        void unbind(uint8_t id);
-        [[nodiscard]] std::pair<int, VoiceAllocStatus> findVictim(bool channelScoped, uint8_t channel) const;
+        void bind(uint32_t id, uint32_t channel, uint32_t pitch, uint32_t triggeredAt);
+        void unbind(uint32_t id);
+        std::pair<uint32_t, VoiceAllocStatus> findVictim(bool channelScoped, uint32_t channel) const;
 
         void decrementActiveCount() {
             activeVoices_.fetch_sub(1, std::memory_order_release);

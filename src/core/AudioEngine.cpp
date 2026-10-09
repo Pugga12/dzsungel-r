@@ -86,10 +86,10 @@ namespace dzsungel::core {
             voice.noteOn(msg.data1, msg.data2);
         } else {
             const ChannelState& csi = csiStore_.get(msg.channel);
-            const Program* prg = patches_.find(csi.packedProgId, true).value();
+            const Program prg = patches_.find(csi.packedProgId, true).value();
 
             voice.provision(
-                createAlgorithmFromProgram(wavetableStore_, *prg, sampleRate_).value()
+                createAlgorithmFromProgram(wavetableStore_, prg, sampleRate_).value()
                 , &csi, msg.channel, kDefaultProgram.ampEnv, sampleRate_);
             voice.noteOn(msg.data1, msg.data2);
         }

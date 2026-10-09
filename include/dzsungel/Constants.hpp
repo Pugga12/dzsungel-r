@@ -16,9 +16,9 @@
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
 
 #pragma once
-#include <cstddef>
+#include <cstdint>
 
 constexpr float kDefaultSampleRate = 44100.0f;
-constexpr size_t kNumChannels = 16;
-constexpr size_t kMaxVoices = 16;
+constexpr uint32_t kNumChannels = 16;
+constexpr uint32_t kMaxVoices = 255;
 constexpr float EPSILON = 1e-4f;
