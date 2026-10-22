@@ -39,6 +39,9 @@ using namespace dzsungel::midi;
 static bool g_monoFlag = false;
 static bool g_logVerbose = false;
 static float g_linearizedGain = 0.0f;
+static RtAudio::Api g_soundServer = RtAudio::Api::UNSPECIFIED;
+static uint g_currentDeviceId = 0;
+constexpr uint kMaxReconnectAttempts = 5;
 
 static struct AudioStatus {
     std::atomic_bool hasError{false};
@@ -171,15 +174,61 @@ static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, dou
     return 0;
 }
 
+static bool openDevice(RtAudio &dac, uint devId, float sampleRate, AudioEngine &eng) {
+    uint bufferSize = 64;
+    RtAudio::StreamParameters oParams{
+            .deviceId = devId,
+            .nChannels = 2,
+    };
+
+    if (dac.openStream(&oParams, nullptr, RTAUDIO_FLOAT32, static_cast<uint>(sampleRate), &bufferSize, xOutputCallback,
+                       &eng, nullptr)) {
+        spdlog::error("Error while opening audio stream: {}", dac.getErrorText());
+        return false;
+    }
+
+    if (dac.startStream()) {
+        spdlog::error("Error when starting audio stream: {}", dac.getErrorText());
+        if (dac.isStreamOpen())
+            dac.closeStream();
+        return false;
+    }
+
+    g_currentDeviceId = devId;
+    return true;
+}
+
+static bool doReconnect(RtAudio &dac, float sampleRate, AudioEngine &eng) {
+    dac.closeStream();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    auto deviceIds = dac.getDeviceIds();
+    bool exists = std::ranges::find(deviceIds, g_currentDeviceId) != deviceIds.end();
+    if (exists) {
+        spdlog::info("Found previously selected device. Opening ...");
+        return openDevice(dac, g_currentDeviceId, sampleRate, eng);
+    }
+
+    uint defaultId = dac.getDefaultOutputDevice();
+    if (defaultId == 0) {
+        spdlog::error("No default output device could be found");
+        return false;
+    }
+
+    spdlog::info("Opening default device \"{}\" (d = {}) ...", dac.getDeviceInfo(defaultId).name, defaultId);
+    return openDevice(dac, defaultId, sampleRate, eng);
+}
+
 void xErrorCallback(RtAudioErrorType type, const std::string &errorText) { 
 #ifdef WIN32
-    // likely disconnect in my experience on windows. usually returns "RtApiWasapi::wasapiThread: Unable to retrieve render buffer size"
-    if (type == RTAUDIO_DRIVER_ERROR) {
-        errorText.rfind("render buffer size");
-        // re-emit as disconnect
-        g_status.type.store(RTAUDIO_DEVICE_DISCONNECT, std::memory_order_release);
-        g_status.hasError.store(true, std::memory_order_release);
-        return;
+    // likely disconnect in my experience on WASAPI. usually returns "RtApiWasapi::wasapiThread: Unable to retrieve render buffer size"
+    if (g_soundServer == RtAudio::Api::WINDOWS_WASAPI && type == RTAUDIO_DRIVER_ERROR) {
+        if (errorText.rfind("render buffer size") != std::string::npos) {
+            // re-emit as disconnect
+            g_status.type.store(RTAUDIO_DEVICE_DISCONNECT, std::memory_order_release);
+            g_status.hasError.store(true, std::memory_order_release);
+            return;
+        }
     }
 #endif
 
@@ -255,24 +304,8 @@ static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sa
         spdlog::debug("Preloaded programs: {:#x}", fmt::join(ids, ", "));
     }
 
-    uint bufferSize = 64;
-    RtAudio::StreamParameters oParams{
-            .deviceId = devId,
-            .nChannels = 2,
-    };
-
-    if (dac.openStream(&oParams, nullptr, RTAUDIO_FLOAT32, static_cast<uint>(sampleRate), &bufferSize, xOutputCallback,
-        &eng, nullptr)) {
-        spdlog::error("Error while opening audio stream: {}", dac.getErrorText());
+    if (!openDevice(dac, devId, sampleRate, eng))
         return false;
-    }
-
-    if (dac.startStream()) {
-        spdlog::error("Error when starting audio stream: {}", dac.getErrorText());
-        if (dac.isStreamOpen())
-            dac.closeStream();
-        return false;
-    }
 
     while (true) {
         // halt if all messages have been queued by the reader and if all voices are inactive
@@ -286,8 +319,14 @@ static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sa
             RtAudioErrorType t = g_status.type.load(std::memory_order_acquire);
 
             if (t == RTAUDIO_DEVICE_DISCONNECT) {
-                spdlog::critical("Output device disconnected, halting...");
-                break;
+                spdlog::warn("Device disconnected. Reconnecting ...");
+                if (doReconnect(dac, sampleRate, eng)) {
+                    spdlog::info("Reconnect succeded!");
+                    g_status.hasError.store(false, std::memory_order_release);
+                    continue;
+                }
+
+                return false;
             } else if (t == RTAUDIO_MEMORY_ERROR ||
                 t == RTAUDIO_DRIVER_ERROR || 
                 t == RTAUDIO_SYSTEM_ERROR || 
@@ -374,13 +413,19 @@ int main(int argc, char **argv) {
     } else if (playCmd->parsed()) {
         RtAudio dac(RtAudio::Api::LINUX_PULSE,  xErrorCallback);
 
+        g_soundServer = dac.getCurrentApi();
+        if (g_soundServer == RtAudio::Api::RTAUDIO_DUMMY) {
+            spdlog::error("No RtAudio API was built for this system. Check your vcpkg.json, this shouldn't be possible.");
+            return 3;
+        }
+
         if (listDevices) {
             listOutputDevices(dac);
             return 0;
         }
 
         std::optional<uint> devId = resolveDeviceId(dac, deviceIdOpt);
-        if (!devId.value()) {
+        if (!devId.has_value()) {
             return 3;
         }
         
