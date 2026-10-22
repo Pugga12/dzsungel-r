@@ -2,21 +2,20 @@
     "version": 8,
   "configurePresets": [
     {
-      "name": "Default-Clang",
+      "name": "clang-fedora-linux",
       "displayName": "Clang 21.1.8 aarch64-redhat-linux-gnu",
-      "description": "Using compilers: C = /usr/sbin/clang, CXX = /usr/sbin/clang++",
+      "description": "Using compilers: C = /usr/bin/clang, CXX = /usr/bin/clang++",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-        "CMAKE_C_COMPILER": "/usr/sbin/clang",
-        "CMAKE_CXX_COMPILER": "/usr/sbin/clang++",
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_C_COMPILER": "/usr/bin/clang",
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "windows-msbuild-aarch64",
+      "name": "windows-vcpkg",
       "displayName": "Windows arm64",
       "description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, debug build type",
       "generator": "Visual Studio 18 2026",
@@ -37,7 +36,7 @@
       }
     },
     {
-      "name": "GCC 15.3.1 aarch64-redhat-linux",
+      "name": "gcc-fedora-linux",
       "displayName": "GCC 15.3.1 aarch64-redhat-linux",
       "description": "Using compilers: C = /usr/sbin/aarch64-redhat-linux-gcc, CXX = /usr/sbin/aarch64-redhat-linux-g++",
       "binaryDir": "${sourceDir}/out/build/${presetName}",

@@ -23,8 +23,15 @@
 #include "spdlog/fmt/ranges.h"
 #include "CLI/CLI.hpp"
 #include "RtAudio.h"
-#include "magic_enum/magic_enum.hpp"
-#include "magic_enum/magic_enum_format.hpp"
+#if __has_include(<magic_enum/magic_enum.hpp>)
+    #include <magic_enum/magic_enum.hpp>
+    #include <magic_enum/magic_enum_format.hpp>
+#elif __has_include(<magic_enum.hpp>)
+    #include <magic_enum.hpp>
+    #include <magic_enum_format.hpp>
+#else
+    #error "magic_enum header not found!"
+#endif
 
 using namespace dzsungel::io;
 using namespace dzsungel::midi;
@@ -253,10 +260,9 @@ static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sa
             .deviceId = devId,
             .nChannels = 2,
     };
-    RtAudio::StreamOptions options{.flags = RTAUDIO_SCHEDULE_REALTIME};
 
     if (dac.openStream(&oParams, nullptr, RTAUDIO_FLOAT32, static_cast<uint>(sampleRate), &bufferSize, xOutputCallback,
-        &eng, &options)) {
+        &eng, nullptr)) {
         spdlog::error("Error while opening audio stream: {}", dac.getErrorText());
         return false;
     }
@@ -366,7 +372,7 @@ int main(int argc, char **argv) {
         bool success = offlineMain(infileName, outfileName, sampleRate);
         return success ? 0 : 2;
     } else if (playCmd->parsed()) {
-        RtAudio dac(RtAudio::Api::UNSPECIFIED, xErrorCallback);
+        RtAudio dac(RtAudio::Api::LINUX_PULSE,  xErrorCallback);
 
         if (listDevices) {
             listOutputDevices(dac);
