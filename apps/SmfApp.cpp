@@ -34,7 +34,6 @@ static bool g_logVerbose = false;
 static float g_linearizedGain = 0.0f;
 static RtAudio::Api g_soundServer = RtAudio::Api::UNSPECIFIED;
 static uint g_currentDeviceId = 0;
-constexpr uint kMaxReconnectAttempts = 5;
 
 static struct AudioStatus {
     std::atomic_bool hasError{false};
@@ -140,8 +139,7 @@ static bool loadMidiFile(const std::string& path, IOSmf& smfReader, float sample
     return true;
 }
 
-static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, double streamTime, RtAudioStreamStatus status,
-                    void *userData) {
+static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, double /*streamTime */, RtAudioStreamStatus /* status */, void *userData) {
     auto buffer = static_cast<float *>(outputBuffer);
     auto eng = static_cast<AudioEngine *>(userData);
 
@@ -164,7 +162,7 @@ static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, dou
 }
 
 static bool openDevice(RtAudio &dac, uint devId, float sampleRate, AudioEngine &eng) {
-    uint bufferSize = 64;
+    uint bufferSize = 256;
     RtAudio::StreamParameters oParams{
             .deviceId = devId,
             .nChannels = 2,
@@ -209,7 +207,7 @@ static bool doReconnect(RtAudio &dac, float sampleRate, AudioEngine &eng) {
     return openDevice(dac, defaultId, sampleRate, eng);
 }
 
-void xErrorCallback(RtAudioErrorType type, const std::string &errorText) { 
+void xErrorCallback(RtAudioErrorType type, const std::string& /* errorText */) { 
 #ifdef WIN32
     // likely disconnect in my experience on WASAPI. usually returns "RtApiWasapi::wasapiThread: Unable to retrieve render buffer size"
     if (g_soundServer == RtAudio::Api::WINDOWS_WASAPI && type == RTAUDIO_DRIVER_ERROR) {
@@ -283,7 +281,7 @@ static bool offlineMain(std::string &infileName, std::string &outfileName, float
 
 static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sampleRate) {
     AudioEngine eng(sampleRate);
-    IOSmf smfReader;
+    IOSmf smfReader(256);
 
     if (!loadMidiFile(infileName, smfReader, sampleRate)) {
         return false;

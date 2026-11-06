@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Dzsungel.  If not, see <http://www.gnu.org/license>
 #include "core/AudioEngine.hpp"
+#include <atomic>
 
 namespace dzsungel::core {
     constexpr size_t kMaxEventsPerBlock = 256;
@@ -31,8 +32,15 @@ namespace dzsungel::core {
                 if (msg.absoluteSample >= blockStart && msg.absoluteSample < blockEnd) {
                     eventBuf_[eventsRecieved++] = msg;
                 } else if (msg.absoluteSample < blockStart) {
-                    msg.absoluteSample = blockStart;
                     eventBuf_[eventsRecieved++] = msg;
+                    countEarly_.fetch_add(1, std::memory_order_release);
+                    countTotal_.fetch_add(1, std::memory_order_release);
+                    totalDelay_.fetch_add((static_cast<float>(blockStart) - msg.absoluteSample) / sampleRate_, std::memory_order_release);
+                    msg.absoluteSample = blockStart;
+                } else if (msg.absoluteSample > blockEnd) {
+                    countLate_.fetch_add(1, std::memory_order_release);
+                    countTotal_.fetch_add(1, std::memory_order_release);
+                    totalDelay_.fetch_add((static_cast<float>(msg.absoluteSample) - blockEnd) / sampleRate_, std::memory_order_release);
                 }
             }
         }
