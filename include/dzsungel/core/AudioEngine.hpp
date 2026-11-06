@@ -39,6 +39,11 @@ namespace dzsungel::core {
         ProgramLibrary patches_;
         float sampleRate_;
         bool usingChronologicalQueuer_ = true;
+        
+        std::atomic<size_t> countLate_ = 0;
+        std::atomic<size_t> countEarly_ = 0;
+        std::atomic<size_t> countTotal_ = 0;
+        std::atomic<float> totalDelay_ = 0.0f;
 
         void handleNoteOn(const MidiMsg& msg);
         void renderVoices(SampleBuffer& buf, size_t currentIndex, size_t targetIndex);
