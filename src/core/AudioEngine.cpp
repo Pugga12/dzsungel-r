@@ -20,42 +20,64 @@
 namespace dzsungel::core {
     constexpr size_t kMaxEventsPerBlock = 256;
 
-    void AudioEngine::renderBlock(SampleBuffer &buf) {
-        const size_t blockStart = currentTimecode_.load(std::memory_order_acquire);
-        const size_t blockEnd = blockStart + (buf.data.size() / buf.stride);
-
-        std::array<MidiMsg, kMaxEventsPerBlock> eventBuf_ = {};
-        size_t eventsRecieved = 0;
+    size_t AudioEngine::eventRecv(const std::span<MidiMsg> &eventBuf, const size_t blockStart, const size_t blockEnd) {
+        size_t eventsRecievedQueue = 0;
         {
             MidiMsg msg;
-            while (eventsRecieved < kMaxEventsPerBlock && messageQueue_.pop(msg)) {
+            while (eventsRecievedQueue < kMaxEventsPerBlock && messageQueue_.pop(msg)) {
                 if (msg.absoluteSample >= blockStart && msg.absoluteSample < blockEnd) {
-                    eventBuf_[eventsRecieved++] = msg;
+                    eventBuf[eventsRecievedQueue++] = msg;
                 } else if (msg.absoluteSample < blockStart) {
-                    eventBuf_[eventsRecieved++] = msg;
-                    countEarly_.fetch_add(1, std::memory_order_release);
-                    countTotal_.fetch_add(1, std::memory_order_release);
-                    totalDelay_.fetch_add((static_cast<float>(blockStart) - msg.absoluteSample) / sampleRate_, std::memory_order_release);
-                    msg.absoluteSample = blockStart;
-                } else if (msg.absoluteSample > blockEnd) {
                     countLate_.fetch_add(1, std::memory_order_release);
                     countTotal_.fetch_add(1, std::memory_order_release);
-                    totalDelay_.fetch_add((static_cast<float>(msg.absoluteSample) - blockEnd) / sampleRate_, std::memory_order_release);
+                    totalDelay_.fetch_add((static_cast<float>(blockStart) - msg.absoluteSample) / sampleRate_,
+                                          std::memory_order_release);
+                    msg.absoluteSample = blockStart;
+                    eventBuf[eventsRecievedQueue++] = msg;
+                } else if (msg.absoluteSample > blockEnd) {
+                    countEarly_.fetch_add(1, std::memory_order_release);
+                    countTotal_.fetch_add(1, std::memory_order_release);
+                    totalDelay_.fetch_add((static_cast<float>(msg.absoluteSample) - blockEnd) / sampleRate_,
+                                          std::memory_order_release);
                 }
             }
         }
 
-        // in applications where the event queuer is guaranteed to be 110% chronological, we may skip the sorting step.
-        if (!usingChronologicalQueuer_) {
-            std::sort(eventBuf_.begin(), eventBuf_.begin() + eventsRecieved,
+        size_t ivEventsRecieved = 0;
+        if (inputTimeline_.data() != nullptr && ivCurrentPosition_ != ivEventCount_) {
+            while (ivEventsRecieved + eventsRecievedQueue < kMaxEventsPerBlock && ivCurrentPosition_ < ivEventCount_) {
+                const MidiMsg &ev = inputTimeline_[ivCurrentPosition_];
+
+                if (ev.absoluteSample >= blockStart && ev.absoluteSample < blockEnd) {
+                    eventBuf[eventsRecievedQueue + ivEventsRecieved++] = ev;
+                    ivCurrentPosition_++;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        const size_t totalRecieved = ivEventsRecieved + eventsRecievedQueue;
+        if (eventsRecievedQueue != 0 && ivEventsRecieved != 0) {
+            std::sort(eventBuf.begin(), eventBuf.begin() + totalRecieved,
                       [](const auto &a, const auto &b) { return a.absoluteSample < b.absoluteSample; });
         }
 
+        return totalRecieved;
+    }
+
+    void AudioEngine::renderBlock(SampleBuffer &buf) {
+        const size_t blockStart = currentTimecode_.load(std::memory_order_acquire);
+        const size_t blockEnd = blockStart + (buf.data.size() / buf.stride);
+
+        std::array<MidiMsg, kMaxEventsPerBlock> eventBuf = {};
+        size_t totalRecieved = eventRecv(eventBuf, blockStart, blockEnd);
+        
         size_t currentSampleIdx = 0;
         const size_t blockSamples = buf.data.size() / buf.stride;
 
-        for (size_t i = 0; i < eventsRecieved; ++i) {
-            const auto& event = eventBuf_[i];
+        for (size_t i = 0; i < totalRecieved; ++i) {
+            const auto& event = eventBuf[i];
             size_t targetIdx = event.absoluteSample - blockStart;
 
             if (targetIdx > currentSampleIdx) {
@@ -94,10 +116,10 @@ namespace dzsungel::core {
             voice.noteOn(msg.data1, msg.data2);
         } else {
             const ChannelState& csi = csiStore_.get(msg.channel);
-            const Program* prg = patches_.find(csi.packedProgId, true).value();
+            const Program prg = *patches_.find(csi.packedProgId, true).value();
 
             voice.provision(
-                createAlgorithmFromProgram(wavetableStore_, *prg, sampleRate_).value()
+                createAlgorithmFromProgram(wavetableStore_, prg, sampleRate_).value()
                 , &csi, msg.channel, kDefaultProgram.ampEnv, sampleRate_);
             voice.noteOn(msg.data1, msg.data2);
         }
