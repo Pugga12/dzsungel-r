@@ -44,17 +44,25 @@ namespace dzsungel::core {
         }
 
         size_t ivEventsRecieved = 0;
-        if (inputTimeline_.data() != nullptr && ivCurrentPosition_ != ivEventCount_) {
-            while (ivEventsRecieved + eventsRecievedQueue < kMaxEventsPerBlock && ivCurrentPosition_ < ivEventCount_) {
-                const MidiMsg &ev = inputTimeline_[ivCurrentPosition_];
+        size_t currentPos = ivCurrentPosition_.load(std::memory_order_relaxed);
+        if (inputTimeline_.data() != nullptr && currentPos != ivEventCount_) {
+            while (ivEventsRecieved + eventsRecievedQueue < kMaxEventsPerBlock && currentPos < ivEventCount_) {
+                const MidiMsg &ev = inputTimeline_[currentPos];
 
-                if (ev.absoluteSample >= blockStart && ev.absoluteSample < blockEnd) {
-                    eventBuf[eventsRecievedQueue + ivEventsRecieved++] = ev;
-                    ivCurrentPosition_++;
+                if (ev.absoluteSample < blockEnd) {
+                    if (ev.absoluteSample >= blockStart) {
+                        eventBuf[eventsRecievedQueue + ivEventsRecieved++] = ev;
+                    } else {
+                        MidiMsg clamped = ev;
+                        clamped.absoluteSample = static_cast<uint32_t>(blockStart);
+                        eventBuf[eventsRecievedQueue + ivEventsRecieved++] = clamped;
+                    }
+                    currentPos++;
                 } else {
                     break;
                 }
             }
+            ivCurrentPosition_.store(currentPos, std::memory_order_release);
         }
 
         const size_t totalRecieved = ivEventsRecieved + eventsRecievedQueue;

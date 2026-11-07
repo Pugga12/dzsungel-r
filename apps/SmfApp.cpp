@@ -159,6 +159,11 @@ static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, dou
         }
     }
 
+    if (eng->isPlaybackComplete()) {
+        g_status.doneFlag.store(true, std::memory_order_release);
+        return 1;
+    }
+
     return 0;
 }
 
@@ -227,11 +232,12 @@ void xErrorCallback(RtAudioErrorType type, const std::string& errorText) {
 
 static bool offlineMain(std::string &infileName, std::string &outfileName, float sampleRate) {
     AudioEngine eng(sampleRate);
-    IOSmf smfReader(4096);
+    IOSmf smfReader;
 
     if (!loadMidiFile(infileName, smfReader, sampleRate)) {
         return false;
     }
+    eng.setInputTimeline(smfReader.getEventsVec());
 
     if (g_logVerbose) {
         std::vector<uint32_t> ids(smfReader.getPreloadIds().begin(), smfReader.getPreloadIds().end());
@@ -252,12 +258,10 @@ static bool offlineMain(std::string &infileName, std::string &outfileName, float
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
-        // halt if all messages have been queued by the reader and if all voices are inactive
-        if (smfReader.isPlaybackComplete() && eng.getActiveVoiceCount() == 0) {
+        if (eng.isPlaybackComplete()) {
             break;
         }
 
-        smfReader.pushToEngine(eng);
         eng.renderBlock(sampleBuf);
 
         for (auto &v: buffer) {
@@ -328,8 +332,9 @@ static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sa
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    /*dac.stopStream();
-    dac.closeStream();*/
+    if (dac.isStreamOpen()) {
+        dac.closeStream();
+    }
 
     return true;
 };

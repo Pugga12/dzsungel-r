@@ -41,7 +41,7 @@ namespace dzsungel::core {
         
         std::span<const MidiMsg> inputTimeline_;
         size_t ivEventCount_ = 0;
-        size_t ivCurrentPosition_ = 0;
+        std::atomic<size_t> ivCurrentPosition_{0};
         
         std::atomic<size_t> countLate_ = 0;
         std::atomic<size_t> countEarly_ = 0;
@@ -71,8 +71,17 @@ namespace dzsungel::core {
 
         void setInputTimeline(std::span<const MidiMsg> inputTimeline) {
             this->inputTimeline_ = inputTimeline;
-            ivCurrentPosition_ = 0;
+            ivCurrentPosition_.store(0, std::memory_order_release);
             ivEventCount_ = inputTimeline.size();
+        }
+
+        [[nodiscard]] bool isPlaybackComplete() {
+            if (inputTimeline_.data() != nullptr) {
+                return ivCurrentPosition_.load(std::memory_order_acquire) >= ivEventCount_
+                    && allocator_.getActiveVoiceCount() == 0
+                    && messageQueue_.empty();
+            }
+            return false;
         }
 
         void renderBlock(SampleBuffer& buf);
