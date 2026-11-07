@@ -44,6 +44,7 @@ set (HEADERS
     include/dzsungel/Constants.hpp
     include/dzsungel/RampingValue.hpp
     include/dzsungel/Types.hpp
+    include/dzsungel/resources/ProgramLibrary.hpp
 )
 
 add_library(dzsungel-core SHARED ${SOURCES} ${HEADERS})

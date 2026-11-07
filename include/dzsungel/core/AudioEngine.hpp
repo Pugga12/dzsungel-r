@@ -38,10 +38,19 @@ namespace dzsungel::core {
         std::array<Voice, 16> voices_;
         ProgramLibrary patches_;
         float sampleRate_;
-        bool usingChronologicalQueuer_ = true;
+        
+        std::span<const MidiMsg> inputTimeline_;
+        size_t ivEventCount_ = 0;
+        std::atomic<size_t> ivCurrentPosition_{0};
+        
+        std::atomic<size_t> countLate_ = 0;
+        std::atomic<size_t> countEarly_ = 0;
+        std::atomic<size_t> countTotal_ = 0;
+        std::atomic<float> totalDelay_ = 0.0f;
 
         void handleNoteOn(const MidiMsg& msg);
         void renderVoices(SampleBuffer& buf, size_t currentIndex, size_t targetIndex);
+        size_t eventRecv(const std::span<MidiMsg> &arr, const size_t blockStart, const size_t blockEnd);
 
     public:
         AudioEngine(float sampleRate) : sampleRate_(sampleRate)  {
@@ -58,6 +67,21 @@ namespace dzsungel::core {
 
         bool midiPush(const MidiMsg& msg) {
             return messageQueue_.push(msg);
+        }
+
+        void setInputTimeline(std::span<const MidiMsg> inputTimeline) {
+            this->inputTimeline_ = inputTimeline;
+            ivCurrentPosition_.store(0, std::memory_order_release);
+            ivEventCount_ = inputTimeline.size();
+        }
+
+        [[nodiscard]] bool isPlaybackComplete() {
+            if (inputTimeline_.data() != nullptr) {
+                return ivCurrentPosition_.load(std::memory_order_acquire) >= ivEventCount_
+                    && allocator_.getActiveVoiceCount() == 0
+                    && messageQueue_.empty();
+            }
+            return false;
         }
 
         void renderBlock(SampleBuffer& buf);

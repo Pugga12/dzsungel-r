@@ -55,6 +55,9 @@ namespace dzsungel::midi {
         [[nodiscard]] const std::unordered_set<uint32_t>& getPreloadIds() const {
             return preloads_;
         }
+        [[nodiscard]] std::span<const MidiMsg> getEventsVec() const { 
+            return events_;
+        }
 
         void unload();
 
