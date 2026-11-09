@@ -15,7 +15,7 @@
       }
     },
     {
-      "name": "windows-vcpkg",
+      "name": "msbuild-aarch64",
       "displayName": "Windows arm64",
       "description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, debug build type",
       "generator": "Visual Studio 18 2026",

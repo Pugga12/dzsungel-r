@@ -45,6 +45,7 @@ static uint g_currentDeviceId = 0;
 static struct AudioStatus {
     std::atomic_bool hasError{false};
     std::atomic<RtAudioErrorType> type{RTAUDIO_NO_ERROR};
+    std::atomic_bool doneFlag{false};
 } g_status;
 
 static void listOutputDevices(RtAudio &dac) { 
@@ -169,6 +170,11 @@ static int xOutputCallback(void *outputBuffer, void *, unsigned int nFrames, dou
         }
     }
 
+    if (eng->isPlaybackComplete()) {
+        g_status.doneFlag.store(true, std::memory_order_release);
+        return 1;
+    }
+
     return 0;
 }
 
@@ -217,7 +223,7 @@ static bool doReconnect(RtAudio &dac, float sampleRate, AudioEngine &eng) {
     return openDevice(dac, defaultId, sampleRate, eng);
 }
 
-void xErrorCallback(RtAudioErrorType type, const std::string& /* errorText */) { 
+void xErrorCallback(RtAudioErrorType type, const std::string& errorText) { 
 #ifdef WIN32
     // likely disconnect in my experience on WASAPI. usually returns "RtApiWasapi::wasapiThread: Unable to retrieve render buffer size"
     if (g_soundServer == RtAudio::Api::WINDOWS_WASAPI && type == RTAUDIO_DRIVER_ERROR) {
@@ -236,11 +242,12 @@ void xErrorCallback(RtAudioErrorType type, const std::string& /* errorText */) {
 
 static bool offlineMain(std::string &infileName, std::string &outfileName, float sampleRate) {
     AudioEngine eng(sampleRate);
-    IOSmf smfReader(4096);
+    IOSmf smfReader;
 
     if (!loadMidiFile(infileName, smfReader, sampleRate)) {
         return false;
     }
+    eng.setInputTimeline(smfReader.getEventsVec());
 
     if (g_logVerbose) {
         std::vector<uint32_t> ids(smfReader.getPreloadIds().begin(), smfReader.getPreloadIds().end());
@@ -261,12 +268,10 @@ static bool offlineMain(std::string &infileName, std::string &outfileName, float
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
-        // halt if all messages have been queued by the reader and if all voices are inactive
-        if (smfReader.isPlaybackComplete() && eng.getActiveVoiceCount() == 0) {
+        if (eng.isPlaybackComplete()) {
             break;
         }
 
-        smfReader.pushToEngine(eng);
         eng.renderBlock(sampleBuf);
 
         for (auto &v: buffer) {
@@ -296,6 +301,7 @@ static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sa
     if (!loadMidiFile(infileName, smfReader, sampleRate)) {
         return false;
     }
+    eng.setInputTimeline(smfReader.getEventsVec());
 
     if (g_logVerbose) {
         std::vector<uint32_t> ids(smfReader.getPreloadIds().begin(), smfReader.getPreloadIds().end());
@@ -306,12 +312,9 @@ static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sa
         return false;
 
     while (true) {
-        // halt if all messages have been queued by the reader and if all voices are inactive
-        if (smfReader.isPlaybackComplete() && eng.getActiveVoiceCount() == 0) {
+        if (g_status.doneFlag.load(std::memory_order_acquire)) {
             break;
         }
-
-        smfReader.pushToEngine(eng);
 
         if (g_status.hasError.load(std::memory_order_acquire)) {
             RtAudioErrorType t = g_status.type.load(std::memory_order_acquire);
@@ -336,11 +339,12 @@ static bool liveMain(RtAudio &dac, std::string &infileName, uint devId, float sa
             g_status.hasError.store(false, std::memory_order_release);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    dac.stopStream();
-    dac.closeStream();
+    if (dac.isStreamOpen()) {
+        dac.closeStream();
+    }
 
     return true;
 };
