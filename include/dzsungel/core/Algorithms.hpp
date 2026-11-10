@@ -51,7 +51,7 @@ namespace dzsungel::core::algorithms {
     public:
         StandardPmAlgorithm(PhaseOsc carrier, PhaseOsc modulator, const Program& p, float sampleRate)
             : carrier_(carrier), modulator_(modulator) {
-            const auto& params = std::get<StandardPMParams>(p.algorithmParams);
+            const auto& params = std::get<StandardPmParams>(p.algorithmParams);
             modEnv_.configure(params.modEnv, sampleRate);
             cToMRatio_ = params.cToMRatio;
             modIndex_ = params.modIndex;

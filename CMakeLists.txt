@@ -10,6 +10,7 @@ find_package(CLI11 CONFIG REQUIRED)
 find_package(RtAudio CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 add_subdirectory(libs/midifile)
 add_subdirectory(libs/dr_wav)
 
@@ -49,7 +50,7 @@ set (HEADERS
 
 add_library(dzsungel-core SHARED ${SOURCES} ${HEADERS})
 target_include_directories(dzsungel-core PUBLIC ${PROJECT_SOURCE_DIR}/include/dzsungel)
-target_link_libraries(dzsungel-core PRIVATE Boost::headers midifile dr_wav)
+target_link_libraries(dzsungel-core PRIVATE Boost::headers midifile dr_wav nlohmann_json::nlohmann_json)
 
 add_executable(dzsmf apps/SmfApp.cpp)
 
@@ -68,7 +69,6 @@ endif()
 target_link_libraries(dzsmf PRIVATE dzsungel-core midifile spdlog::spdlog Boost::headers CLI11::CLI11 RtAudio::rtaudio magic_enum::magic_enum)
 
 option(DZSUNGEL_BUILD_TESTS "Build the GoogleTest-based test suite" OFF)
-option(DBG_RV_LOG_CSV "Log RampingValue operations to csv file" OFF)
 if (DZSUNGEL_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

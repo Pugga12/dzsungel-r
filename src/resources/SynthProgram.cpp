@@ -22,27 +22,26 @@ using namespace dzsungel::core::algorithms;
 
 namespace dzsungel::resources {
     std::optional<AlgorithmImpl> createAlgorithmFromProgram(WavetableStore &s, const Program &p, float sampleRate) {
-        if (std::holds_alternative<StandardPMParams>(p.algorithmParams)) {
-            const auto& params = std::get<StandardPMParams>(p.algorithmParams);
+        return std::visit([&](const auto& params) -> std::optional<AlgorithmImpl> {
+            using T = std::decay_t<decltype(params)>;
+            if constexpr (std::is_same_v<T, StandardPmParams>) {
+                const auto carrierTable = s.find(params.carrierWavetableName);
+                const auto modTable = s.find(params.modulatorWavetableName);
 
-            const auto carrierTable = s.find(params.carrierTblName);
-            const auto modTable = s.find(params.modulatorTblName);
+                if (!carrierTable.has_value() || !modTable.has_value()) return std::nullopt;
 
-            if (!carrierTable.has_value() || !modTable.has_value()) return std::nullopt;
+                PhaseOsc carrier = WavetableOsc(carrierTable.value(), sampleRate);
+                PhaseOsc modulator = WavetableOsc(modTable.value(), sampleRate);
 
-            PhaseOsc carrier = WavetableOsc(carrierTable.value(), sampleRate);
-            PhaseOsc modulator = WavetableOsc(modTable.value(), sampleRate);
+                return StandardPmAlgorithm(carrier, modulator, p, sampleRate);
+            } else if constexpr (std::is_same_v<T, FeedbackParams>) {
+                const auto carrierTable = s.find(params.carrierWavetableName);
+                if (!carrierTable.has_value()) return std::nullopt;
 
-            return StandardPmAlgorithm(carrier, modulator, p, sampleRate);
-        } else {
-            const auto& params = std::get<FeedbackParams>(p.algorithmParams);
+                PhaseOsc carrier = WavetableOsc(carrierTable.value(), sampleRate);
 
-            const auto carrierTable = s.find(params.carrierTblName);
-            if (!carrierTable.has_value()) return std::nullopt;
-
-            PhaseOsc carrier = WavetableOsc(carrierTable.value(), sampleRate);
-
-            return FeedbackAlgorithm(carrier, p, sampleRate);
-        }
+                return FeedbackAlgorithm(carrier, p, sampleRate);
+            }
+        }, p.algorithmParams);
     }
 }

@@ -18,6 +18,8 @@
 #pragma once
 #include <chrono>
 #include "Constants.hpp"
+#include "nlohmann/json.hpp"
+using nlohmann::json;
 
 namespace dzsungel::core {
     enum class ADSRState {
@@ -31,6 +33,18 @@ namespace dzsungel::core {
         std::chrono::duration<float> release;
         bool oneShot;
     };
+    inline void from_json(const json& j, EnvelopeConfig& env) {
+        float attackSeconds, decaySeconds, releaseSeconds;
+        j.at("attackSeconds").get_to(attackSeconds);
+        j.at("decaySeconds").get_to(decaySeconds);
+        j.at("sustainLevel").get_to(env.sustain);
+        j.at("release").get_to(releaseSeconds);
+        j.at("oneShotMode").get_to(env.oneShot);
+
+        env.attack = std::chrono::duration<float>(attackSeconds);
+        env.decay = std::chrono::duration<float>(decaySeconds);
+        env.release = std::chrono::duration<float>(releaseSeconds);
+    }
 
     class ADSR {
     public:

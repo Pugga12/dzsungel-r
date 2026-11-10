@@ -2,8 +2,9 @@
   "dependencies": [
     "boost-lockfree",
     "cli11",
+    "magic-enum",
     "rtaudio",
     "spdlog",
-    "magic-enum"
+    "nlohmann-json"
   ]
 }

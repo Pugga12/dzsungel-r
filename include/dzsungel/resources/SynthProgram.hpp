@@ -19,6 +19,8 @@
 
 #include "WavetableStore.hpp"
 #include "core/ADSR.hpp"
+#include "nlohmann/json.hpp"
+using nlohmann::json;
 
 namespace dzsungel::core::algorithms {
     class StandardPmAlgorithm;
@@ -33,20 +35,26 @@ namespace dzsungel::resources {
         STANDARD_PM,
         FEEDBACK
     };
+    NLOHMANN_JSON_SERIALIZE_ENUM(AlgorithmType,{
+        {AlgorithmType::STANDARD_PM, "standardPm"}, 
+        {AlgorithmType::FEEDBACK, "feedback"}
+    }); 
 
-    struct StandardPMParams {
-        std::string_view carrierTblName;
-        std::string_view modulatorTblName;
+    struct StandardPmParams {
+        std::string_view carrierWavetableName;
+        std::string_view modulatorWavetableName;
         float cToMRatio = 0.0f;
         float modIndex = 0.0f;
         EnvelopeConfig modEnv{};
     };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StandardPmParams, carrierWavetableName, modulatorWavetableName, cToMRatio, modIndex, modEnv);
 
     struct FeedbackParams {
-        std::string_view carrierTblName;
+        std::string_view carrierWavetableName;
         float modIndex = 0.0f;
         EnvelopeConfig modEnv{};
     };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FeedbackParams, carrierWavetableName, modIndex, modEnv);
 
     inline uint32_t packProgramId(uint8_t msb, uint8_t lsb, uint8_t program) {
         return (msb << 16) | (lsb << 8) | program;
@@ -57,14 +65,14 @@ namespace dzsungel::resources {
         uint32_t packedProgramId = 0;
         AlgorithmType type = AlgorithmType::STANDARD_PM;
 
-        std::variant<StandardPMParams, FeedbackParams> algorithmParams;
+        std::variant<StandardPmParams, FeedbackParams> algorithmParams;
         EnvelopeConfig ampEnv{};
 
         Program() = default;
         Program(
             std::string_view str,
             uint8_t bankMsb, uint8_t bankLsb, uint8_t program,
-            StandardPMParams alParams, EnvelopeConfig ampEnv
+            StandardPmParams alParams, EnvelopeConfig ampEnv
         ) : name(str), packedProgramId(packProgramId(bankMsb, bankLsb, program)), algorithmParams(alParams), ampEnv(ampEnv) {}
 
         Program(
@@ -73,12 +81,29 @@ namespace dzsungel::resources {
             FeedbackParams alParams, EnvelopeConfig ampEnv
         ) : name(str), packedProgramId(packProgramId(bankMsb, bankLsb, program)), type(AlgorithmType::FEEDBACK), algorithmParams(alParams), ampEnv(ampEnv) {}
 
-        Program(std::string_view str, uint32_t packedId, StandardPMParams alParams, EnvelopeConfig ampEnv)
+        Program(std::string_view str, uint32_t packedId, StandardPmParams alParams, EnvelopeConfig ampEnv)
             : name(str), packedProgramId(packedId), algorithmParams(alParams), ampEnv(ampEnv) {}
 
         Program(std::string_view str, uint32_t packedId, FeedbackParams alParams, EnvelopeConfig ampEnv)
             : name(str), packedProgramId(packedId), type(AlgorithmType::FEEDBACK),algorithmParams(alParams), ampEnv(ampEnv) {}
     };
+ 
+    inline void from_json(const json& j, Program& p) {
+        j.at("name").get_to(p.name);
+        j.at("id").get_to(p.packedProgramId);
+        j.at("type").get_to(p.type);
+        j.at("ampEnv").get_to(p.ampEnv);
+
+        if (p.type == AlgorithmType::STANDARD_PM) {
+            StandardPmParams params;
+            from_json(j.at("algorithmParams"), params);
+            p.algorithmParams = params;
+        } else if (p.type == AlgorithmType::FEEDBACK) {
+            FeedbackParams params;
+            from_json(j.at("algorithmParams"), params);
+            p.algorithmParams = params;
+        }
+    }
 
     std::optional<AlgorithmImpl> createAlgorithmFromProgram(WavetableStore &s, const Program &p, float sampleRate);
 
